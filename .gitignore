@@ -1,0 +1,8 @@
+# hidden folders
+.*/
+
+# installation sandbox
+sandbox/
+
+# generated source graph
+SourceGraph/
