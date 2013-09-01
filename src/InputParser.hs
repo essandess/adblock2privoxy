@@ -10,7 +10,7 @@ import Text.Parsec.Permutation
 import ParsecExt
 
 --------------------------------------------------------------------------
----------------------------- data model  ------------------------------------
+---------------------------- data model  ---------------------------------
 --------------------------------------------------------------------------
 
 -- composite
@@ -56,25 +56,25 @@ data Restrictions a = Restrictions {
 ---------------------------- parsers  ------------------------------------
 --------------------------------------------------------------------------
 
-adblockFile :: MyParser [Line]        
+adblockFile :: Parser [Line]        
 adblockFile = header *> sepEndBy line (oneOf eol)
     where 
         header = string "[Adblock Plus " <* version <* string "]"  <* lineEnd
         version = join <$> sepBy (many1 digit) (char '.')
 
 
-line :: MyParser Line 
+line :: Parser Line 
 line = Line <$> text <*> choice (try <$> [comment, elementHide, match, unknown]) <?> "filtering rule"  
     where
         text = lookAhead (manyTill anyChar lineEnd)
 
-elementHide :: MyParser Record
+elementHide :: Parser Record
 elementHide = ElementHide <$> domains ',' <*> excludeMatch <*> pattern
     where
         excludeMatch = char '#' *> ((False <$ string "#") <|> (True <$ string "@#"))
         pattern = manyTill anyChar (lookAhead lineEnd)
 
-match :: MyParser Record
+match :: Parser Record
 match = RequestBlock <$> excludeMatch <*> pattern <*> options
     where
         excludeMatch = option False $ True <$ count 2 (char '@')
@@ -82,15 +82,15 @@ match = RequestBlock <$> excludeMatch <*> pattern <*> options
         pattern = manyTill anyChar (lookAhead patternEnd)
         options = option '$' (char '$') *> requestOptions
 
-comment :: MyParser Record
+comment :: Parser Record
 comment = Comment <$ (separatorLine <|> commentText)
             where commentText = char '!' <* skipMany notLineEnd
                   separatorLine = lookAhead lineEnd
 
-unknown :: MyParser Record
+unknown :: Parser Record
 unknown = Unknown <$ skipMany notLineEnd
 
-requestOptions :: MyParser RequestOptions
+requestOptions :: Parser RequestOptions
 requestOptions = runPermParser $ RequestOptions 
                                     <$> requestTypes 
                                     <*> (getMaybeAll <$> requestOptionNorm "ThirdParty") 
@@ -108,12 +108,12 @@ requestOptions = runPermParser $ RequestOptions
         separator = try (lineSpaces *> char ',' <* lineSpaces)
         unknownOption = manyPerm $ try optionName
         
-requestOption :: String -> MyParser All
+requestOption :: String -> Parser All
 requestOption name = All <$> option True (char '~' *> return False) <* checkOptionName name
                              
 
 
-requestTypeOption :: MyParser RequestType
+requestTypeOption :: Parser RequestType
 requestTypeOption =  do  t <- optionName 
                          case reads t of
                             [(result, "")] -> return result
@@ -121,10 +121,10 @@ requestTypeOption =  do  t <- optionName
 
       
                     
-domainOption :: MyParser (Restrictions Domain)
+domainOption :: Parser (Restrictions Domain)
 domainOption =  checkOptionName "Domain" *> lineSpaces *> char '=' *> lineSpaces *> domains '|'
 
-optionName :: MyParser String
+optionName :: Parser String
 optionName = asOptionName <$> ((:) <$> letter <*> many (alphaNum <|> char '-'))
                 where
                      capitalize [] = ""
@@ -132,17 +132,17 @@ optionName = asOptionName <$> ((:) <$> letter <*> many (alphaNum <|> char '-'))
                      ws = split "-"
                      asOptionName = join.liftA capitalize.ws
 
-checkOptionName :: String -> MyParser ()
+checkOptionName :: String -> Parser ()
 checkOptionName name =  do t <- optionName
                            when (name /= t) (pzero <?> "option type")
                     
-domain :: MyParser Domain
+domain :: Parser Domain
 domain = join <$> intersperse "." <$> parts
             where 
             parts = sepBy1 domainPart (char '.') 
             domainPart = many1 (alphaNum <|> char '-')
 
-domains :: Char -> MyParser (Restrictions Domain)
+domains :: Char -> Parser (Restrictions Domain)
 domains sep = runPermParser restrictions
     where 
         restrictions = Restrictions <$> (Just <$> manyPerm  (try domain)) <*> manyPerm  (try notDomain) <* manyPerm (try separator)
@@ -153,15 +153,15 @@ domains sep = runPermParser restrictions
 eol :: String
 eol = "\r\n"
 
-lineSpaces :: MyParser ()
+lineSpaces :: Parser ()
 --lineSpaces = spaces
 lineSpaces = skipMany (satisfy isLineSpace) <?> "white space"
     where isLineSpace c = c == ' ' || c == '\t'
 
-lineEnd :: MyParser Char
+lineEnd :: Parser Char
 lineEnd = oneOf eol <|> ('\0' <$ eof)
 
-notLineEnd :: MyParser Char
+notLineEnd :: Parser Char
 notLineEnd = noneOf eol
 
 

@@ -19,5 +19,6 @@ executable AdBlock2Privoxy
                    InputParser,
                    ParsecExt,
                    Foo,
-                   Utils
+                   Utils,
+                   ParserExtTests
 
