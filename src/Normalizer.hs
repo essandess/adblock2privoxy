@@ -16,10 +16,10 @@ type Path' = (
               )
 
 
-cc :: String -> Either ParseError [Path']
-cc = parse (cases urlParts) "url"
+--cc :: String -> Either ParseError [Path']
+--cc = parse (cases urlParts) "url"
 
-urlParts :: [MyParser Path']
+urlParts :: [Parser Path']
 urlParts = [bindStart', proto', host', query', bindEnd']
         where
             bindStart' = (\x -> (x, z, z, z, z)) <$> bindStart
@@ -48,14 +48,14 @@ data Path = Path { _bindStart :: Sum Int,
                    }
               deriving (Show)
 
-hostChar :: MyParser Char
+hostChar :: Parser Char
 hostChar = alphaNum <|> oneOf ".-:"
 
 hostSeparators :: String
 hostSeparators = "^/*"
 
 
-path :: MyParser Path
+path :: Parser Path
 path = Path <$> bindStart <*> proto <*> host <*> query <*> bindEnd
     where 
         bindStart = Sum <$> option 0 (1 <$ char '|') <?> "left border"

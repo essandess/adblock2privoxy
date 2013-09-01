@@ -8,6 +8,7 @@ import Text.ParserCombinators.Parsec hiding (Line, many, optional)
 import Control.Monad
 import Data.List
 import System.IO
+import ParserExtTests
 
 filename :: String
 --filename = "/home/alexey/Downloads/advblock.txt"

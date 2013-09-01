@@ -9,6 +9,7 @@ import Text.ParserCombinators.Parsec hiding ((<|>),State)
 import Control.Monad
 import Data.List
 import Data.Maybe
+import Debug.Trace
 
 --------------------------------------------------------------------------------
 --- Morse chars parsing: parse "......-...-..---" in all possible ways ---------
@@ -74,26 +75,31 @@ findMorseSteps prefix codes = case find (== prefix) codes of
                                                         ++ findMorseSteps (prefix ++ "-") filtered
                             Just match -> [match]
 
-morseStepParser :: [String] -> Parser String
+morseStepParser :: [String] -> StringStateParser String
 morseStepParser [] = pzero
 morseStepParser [step] = string step
 morseStepParser (step:steps') = string step <|> morseStepParser steps'
 
-morseParser :: Int -> ZipListM String -> Parser (ZipListM String)
-morseParser pos accs = let acc = (getZipListM accs) !! pos 
-                           candidates = filter (\x -> isPrefixOf acc x && acc /= x) morseCharCodes
-                           steps = drop (length acc) <$> findMorseSteps acc candidates
-                           parser = morseStepParser steps
-                           update res = zipListM $ (replicate pos "") ++ (res : repeat "")
-                       in update <$> parser
+morseParser :: Int -> StringStateParser (ZipListM String)
+morseParser pos = do     acc' <- getState
+                         let acc = case acc' of
+                                      Nothing -> ""
+                                      Just val -> val
+                             candidates = filter (\x -> isPrefixOf acc x && acc /= x) morseCharCodes
+                             steps = drop (length acc) <$> findMorseSteps acc candidates
+                             parser = morseStepParser steps    
+                         res <- parser
+                         setState (Just $ acc ++ res)
+                         return (zipListM $ (replicate pos "") ++ (res : repeat ""))
+                  
 
-morseParsers :: [ZipListM String -> Parser (ZipListM String)]
+morseParsers :: [StringStateParser (ZipListM String)]
 morseParsers = (repeat morseParser) <*> [0..]
 
 testParseMorse :: Either ParseError [String]
-testParseMorse = fmap (filter (isPrefixOf "HELL")) $ (fmap.fmap) postProcess $ parseMorse "x" "......-...-..---"
+testParseMorse = fmap (filter $ isPrefixOf "HELL") $ (fmap.fmap) postProcess $ parseMorse "x" "......-...-..---"
             where 
-            parseMorse =  parse $ cases $ morseParsers 
+            parseMorse =  runParser (cases $ morseParsers) Nothing 
             postProcess = decodeMorse.toLists 
             toLists = (takeWhile $ not.null) . getZipListM 
             
