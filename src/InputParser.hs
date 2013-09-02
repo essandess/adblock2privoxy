@@ -7,7 +7,6 @@ import Data.Char
 import Data.Monoid
 import Control.Monad
 import Text.Parsec.Permutation
-import ParsecExt
 
 --------------------------------------------------------------------------
 ---------------------------- data model  ---------------------------------

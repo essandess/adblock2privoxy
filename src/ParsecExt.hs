@@ -1,10 +1,14 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables, FlexibleInstances #-}
 module ParsecExt (
     testParsecExt,
+    testParseMorse,
     CasesParser,
     StateParser,
     StringStateParser,
-    cases
+    cases,
+    manyCases,
+    many1Cases,
+    oneCase
 ) where
 
 import Utils
@@ -12,7 +16,9 @@ import Control.Applicative hiding (many)
 import Text.ParserCombinators.Parsec hiding ((<|>),State)
 import Control.Monad.Trans 
 import Control.Monad.RWS
+import Control.Monad.State
 import Data.Maybe
+import  {-# SOURCE #-} ParserExtTests 
         
 ---------------------------------------------------------------------------------------------
 ------------------------- usage samples ------------------------------------------------------
@@ -23,49 +29,74 @@ type ExampleCase = ([String], String, String)
 parsersChain :: [StringStateParser ExampleCase]
 parsersChain = square3 prefix mid suffix
         where -- all parsers except for last one should consume some input and give some output
-            prefix = do acc <- getState
-                        setState $ Just ""
-                        if isNothing acc 
-                            then return [] 
-                            else ((:[]) <$> (string "ab" <|> string "zz"))
-            mid =    (:[]) <$> letter            -- list of letters
-            suffix = many1 alphaNum <* eof             
+            prefix = manyCases ((:[]) <$> (string "ab" <|> string "zz"))
+            mid =    many1Cases $ (:[]) <$> letter            -- list of letters
+            suffix = many1Cases $ try $ many1 alphaNum  
+            
 
 testParsecExt :: Either ParseError [([String], String, String)]
-testParsecExt =  runParser (cases parsersChain) Nothing "x" "abebz12"
+testParsecExt =  parse (cases parsersChain <* string "$$") "x" "abebz12$$"
+
+testParseMorse :: Either ParseError [String]
+testParseMorse = parseMorse "......-...-..---"
 
 ---------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------
+
+-- parser should consume some input to prevent infinite loop
+manyCases :: (Monoid a, Monoid st) => Parser a -> StateParser st a
+manyCases p = do    acc <- get
+                    put  $ Just mempty
+                    lift $ if isNothing acc 
+                              then return mempty 
+                              else p
+                        
+oneCase :: (Monoid a, Monoid st) => Parser a -> StateParser st a
+oneCase p = do  acc <- get
+                put  $ Just mempty
+                lift $ if isNothing acc 
+                          then p
+                          else pzero
+
+many1Cases :: Parser a -> StateParser st a
+many1Cases = lift
+
 type StringStateParser = StateParser String
-type StateParser st = GenParser Char (Maybe st)
-type CasesParser st r = RWST () [r] String (StateParser st) 
+type StateParser st = StateT (Maybe st) Parser
+type CasesParser st r = RWST () [r] String (StateParser st)
 
-cases :: forall r st.(Monoid r) => [StateParser st r] -> StateParser st [r]
-cases parsers =  do
-                    input <- getInput
-                    let boxedParser = mapRWST lookAhead $ casesParser mempty parsers
-                    (input', res) <- execRWST boxedParser () input
-                    setInput input'
+optionMaybeTry :: StateParser st a -> StateParser st (Maybe a)
+optionMaybeTry p = liftM Just (mapStateT try p) <|> return Nothing
+
+cases :: forall r st.(Monoid r) => [StateParser st r] -> Parser [r]
+cases parsers =  evalStateT stateParser Nothing
+            where stateParser =  do
+                    input <- lift getInput
+                    let boxedParser = (mapRWST.mapStateT) lookAhead $ casesParser mempty parsers
+                    (input', res) <- execRWST boxedParser () input  
+                    lift (setInput input')
                     return res
+                 
                                         
 casesParser :: forall r st.(Monoid r) => r -> [StateParser st r] -> CasesParser st r ()
 casesParser _ []                         = error "Empty parser list is not accepted"
 casesParser acc parsers@(parser:next) = do
-        maybeRes <- lift.optionMaybe.try $ parser
+        maybeRes <- lift (optionMaybeTry parser)
         case maybeRes of 
             Nothing -> return ()
             Just res -> do
-                input <- lift getInput
+                input <- lift.lift $ getInput
+                let acc' = acc <> res
                 if null input || null next 
-                    then do 
-                            put input
-                            tell [acc <> res]
-                    else do 
-                            st <- lift getState
-                            lift (setState Nothing)
-                            mapRWST lookAhead $ casesParser (acc <> res) next
-                            lift (setState st)
-                            casesParser (acc <> res) parsers                                      
+                        then do
+                            modify (minList input) -- TODO: somehow use processed length to select min input
+                            tell [acc']
+                        else do 
+                            st <- lift get
+                            lift (put Nothing)
+                            (mapRWST.mapStateT) lookAhead $ casesParser acc' next
+                            lift (put st)
+                when (not.null $ input) $ casesParser acc' parsers                                      
                                         
 ------------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 module ParserExtTests (
-testParseMorse,
+parseMorse,
 encodeMorse
 ) where
 import Utils
@@ -9,6 +9,7 @@ import Text.ParserCombinators.Parsec hiding ((<|>),State)
 import Control.Monad
 import Data.List
 import Data.Maybe
+import Control.Monad.State
 import Debug.Trace
 
 --------------------------------------------------------------------------------
@@ -75,31 +76,31 @@ findMorseSteps prefix codes = case find (== prefix) codes of
                                                         ++ findMorseSteps (prefix ++ "-") filtered
                             Just match -> [match]
 
-morseStepParser :: [String] -> StringStateParser String
+morseStepParser :: [String] -> Parser String
 morseStepParser [] = pzero
 morseStepParser [step] = string step
 morseStepParser (step:steps') = string step <|> morseStepParser steps'
 
 morseParser :: Int -> StringStateParser (ZipListM String)
-morseParser pos = do     acc' <- getState
+morseParser pos = do     acc' <- get
                          let acc = case acc' of
                                       Nothing -> ""
                                       Just val -> val
                              candidates = filter (\x -> isPrefixOf acc x && acc /= x) morseCharCodes
                              steps = drop (length acc) <$> findMorseSteps acc candidates
                              parser = morseStepParser steps    
-                         res <- parser
-                         setState (Just $ acc ++ res)
+                         res <- lift parser
+                         put (Just $ acc ++ res)
                          return (zipListM $ (replicate pos "") ++ (res : repeat ""))
                   
 
 morseParsers :: [StringStateParser (ZipListM String)]
 morseParsers = (repeat morseParser) <*> [0..]
 
-testParseMorse :: Either ParseError [String]
-testParseMorse = fmap (filter $ isPrefixOf "HELL") $ (fmap.fmap) postProcess $ parseMorse "x" "......-...-..---"
+parseMorse :: String -> Either ParseError [String]
+parseMorse s = fmap (filter $ isPrefixOf "HELL") $ (fmap.fmap) postProcess $ parseMorseRaw "x" s
             where 
-            parseMorse =  runParser (cases $ morseParsers) Nothing 
+            parseMorseRaw =  parse (cases $ morseParsers) 
             postProcess = decodeMorse.toLists 
             toLists = (takeWhile $ not.null) . getZipListM 
             

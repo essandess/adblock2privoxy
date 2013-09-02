@@ -2,86 +2,101 @@ module Normalizer where
 import InputParser
 import Control.Applicative hiding (many)
 import Text.ParserCombinators.Parsec hiding (Line, (<|>))
-import Control.Monad
+import Control.Monad.State
 import Data.List
+import Data.String.Utils (replace)
+import Data.Maybe
+import Data.List.Utils (split)
 import ParsecExt
-import Data.Monoid
+import Utils
 
 type Path' = (
-                Sum Int,  -- bind start
                 String,  -- proto
                 String,  -- host
-                String,  -- query
-                Any   -- bind end    
+                String  -- query   
               )
 
 
---cc :: String -> Either ParseError [Path']
---cc = parse (cases urlParts) "url"
+url :: String -> Either ParseError [Path]
+url = parse (makePaths <$> bindStart <*> cases urlParts <*> bindEnd) "url"
+    where
+        bindStart = try (string "||") <|> try (string "|") <|> return "" <?> "query start"
+        bindEnd = (char '|' <* eof) <|> ('\0' <$ eof) <?> "query end"
+        makePath start (proto, host, query) end = Path (length start) proto host query end 
+        makePaths start mid end = makePath start <$> mid <*> (pure (end == '|')) 
 
-urlParts :: [Parser Path']
-urlParts = [bindStart', proto', host', query', bindEnd']
-        where
-            bindStart' = (\x -> (x, z, z, z, z)) <$> bindStart
-            proto' =     (\x -> (z, x, z, z, z)) <$> proto
-            host' =      (\x -> (z, z, x, z, z)) <$> host
-            query' =     (\x -> (z, z, z, x, z)) <$> query
-            bindEnd' =   (\x -> (z, z, z, z, x)) <$> bindEnd
-            
-            z :: Monoid a => a
-            z = mempty 
-            
-            bindStart = Sum <$> option 0 (1 <$ char '|') <?> "left border"
-            proto = option "" (try (many letter <* string "://")) <?> "proto"
-            host = ((:) <$> (char '*' <|> hostChar) <*> many1 hostChar) <|> lookAhead separator <?> "host"
-            separator = pure <$> (oneOf hostSeparators <|> queryEnd) <?> "separator"
-            query = manyTill anyChar (lookAhead (try queryEnd)) <?> "query"
+urlParts :: [StringStateParser Path']
+urlParts = square3 proto (manyCases host) (oneCase query)
+        where          
+            append xs x = xs ++ [x]
+            proto :: StringStateParser String
+            proto = do
+                    masksString <- get
+                    case masksString of
+                        Nothing -> 
+                            do
+                            put $ Just $ intercalate protocolsSeparator protocols
+                            return ""
+                        Just masksString' -> 
+                            do
+                            let masks = split protocolsSeparator masksString'
+                            if null masks 
+                                then lift pzero
+                                else 
+                                    do
+                                    name <- lift $ many $ protocolChar
+                                    sep <- lift $ many $ oneOf $ hostSeparators
+                                    let chars = name ++ (replace "^" "//" sep)
+                                    nextChar <- lift $ lookAhead anyChar
+                                    let masks' = filterProtoMasks masks chars nextChar
+                                    if null masks' || null chars
+                                        then lift pzero
+                                        else
+                                            do
+                                            if isJust $ find null masks' 
+                                                then put $ Just $ ""
+                                                else put $ Just $ intercalate protocolsSeparator masks'  
+                                            if nextChar == '*' 
+                                                then return $ chars ++ ['*']
+                                                else return chars
+            host = try (append <$> many hostChar <*> char '*') <|>
+                   try (append <$> many1 hostChar <*> lookAhead (separator)) <?> "host"
+            separator = (oneOf hostSeparators <|> queryEnd) <?> "separator"
+            query = notFollowedBy (try $ string "//") *> manyTill anyChar (lookAhead (try queryEnd)) <?> "query"
             queryEnd = (char '|' <* eof) <|> ('\0' <$ eof) <?> "query end"
-            bindEnd = Any <$> (False <$ eof <|> True <$ char '|' <* eof) <?> "right border"
+            
+filterProtoMasks :: [String] -> String -> Char -> [String]
+filterProtoMasks masks chars nextChar = catMaybes $ map filterProtoMask masks
+    where filterProtoMask mask = if nextChar /= '*' 
+                                    then if isSuffixOf chars mask
+                                         then Just ""
+                                         else Nothing 
+                                    else let tailFound = find (chars `isPrefixOf`) (tails mask)
+                                         in drop (length chars) <$> tailFound 
 
                    
-data Path = Path { _bindStart :: Sum Int,
+data Path = Path { _bindStart :: Int,
                    _proto :: String,
                    _hosts :: String,
                    _query :: String,
-                   _bindEnd :: Any
+                   _bindEnd :: Bool
                    }
               deriving (Show)
 
 hostChar :: Parser Char
 hostChar = alphaNum <|> oneOf ".-:"
 
+protocols :: [String]
+protocols = ["https://", "http://"]
+
+protocolsSeparator :: String
+protocolsSeparator = ";"
+
+protocolChar :: Parser Char
+protocolChar = oneOf (delete '/' $ nub $ join $ protocols)
+
 hostSeparators :: String
-hostSeparators = "^/*"
-
-
-path :: Parser Path
-path = Path <$> bindStart <*> proto <*> host <*> query <*> bindEnd
-    where 
-        bindStart = Sum <$> option 0 (1 <$ char '|') <?> "left border"
-        
-        proto = option "" (try (many letter <* string "://")) <?> "proto"
-        
-        --hosts = try ((:) <$> host <*> hosts) <|> lookAhead separator <?> "hosts"
-        host = ((:) <$> (char '*' <|> hostChar) <*> many1 hostChar) <|> lookAhead separator <?> "host"
-        separator = pure <$> (oneOf hostSeparators <|> queryEnd) <?> "separator"
-        query = manyTill anyChar (lookAhead (try queryEnd)) <?> "query"
-        queryEnd = ('\0' <$ char '|') <|> ('\0' <$ eof) <?> "query end"
-        bindEnd = Any <$> option False (True <$ char '|') <?> "right border"
-        
---path :: MyParser Path
---path = Path <$> bindStart <*> proto <*> optionMaybe hosts <*> query <*> bindEnd
---    where 
---        bindStart = option BindStartNone (char '|' *> (option BindStartStrict (BindStartSoft <$ char '|'))) <?> "left border"
---        proto = option "" (try (many letter <* string "://")) <?> "proto"
---        hosts = try ((:) <$> host <*> hosts) <|> lookAhead separator <?> "hosts"
---        host = (:) <$> (char '*' <|> hostChar) <*> many1 hostChar  <?> "host"
---        separator = pure.pure <$> (oneOf hostSeparators <|> queryEnd) <?> "separator"
---        query = manyTill anyChar (lookAhead (try queryEnd)) <?> "query"
---        queryEnd = ('\0' <$ char '|') <|> ('\0' <$ eof) <?> "query end"
---        bindEnd = option False (True <$ char '|') <?> "right border"
-
-
+hostSeparators = "^/"
 
 normalizeLines :: [Line] -> [Line]
 normalizeLines = join.fmap normalizeLine

@@ -7,7 +7,10 @@ Struct5 (..),
 testSquare,
 ZipListM,
 getZipListM,
-zipListM
+zipListM,
+maxList,
+minList,
+compareList
 ) where
 import Control.Applicative hiding (many)
 import Control.Monad.Writer
@@ -16,6 +19,21 @@ import Control.Monad.State
 ------------------------------------------------------------------------------------------
 ----------------------------- export -----------------------------------------------------
 ------------------------------------------------------------------------------------------
+
+-- at least one list should be finite
+compareList :: Ord a => [a] -> [a] -> Ordering
+compareList = compareList' EQ   
+    where
+        compareList' lx [] [] = lx
+        compareList' _ [] _ = LT
+        compareList' _ _ [] = GT
+        compareList' lx (x:xs) (y:ys) = compareList' (lx <> compare x y) xs ys 
+    
+maxList :: Ord a => [a] -> [a] -> [a]
+maxList a b = if compareList a b == LT then b else a
+
+minList :: Ord a => [a] -> [a] -> [a]
+minList a b = if compareList a b == GT then b else a
 
 newtype ZipListM a = ZipListM { getZipList' :: ZipList a } deriving (Functor, Applicative)
 getZipListM :: ZipListM a -> [a]

@@ -1,14 +1,14 @@
 module Main where
 import InputParser
-import Normalizer
-import ParsecExt
-import Utils
 import Control.Applicative hiding ((<|>))
 import Text.ParserCombinators.Parsec hiding (Line, many, optional)
 import Control.Monad
 import Data.List
 import System.IO
-import ParserExtTests
+import ParsecExt
+import Normalizer
+import Utils
+
 
 filename :: String
 --filename = "/home/alexey/Downloads/advblock.txt"
