@@ -10,7 +10,6 @@ import Control.Monad
 import Data.List
 import Data.Maybe
 import Control.Monad.State
-import Debug.Trace
 
 --------------------------------------------------------------------------------
 --- Morse chars parsing: parse "......-...-..---" in all possible ways ---------

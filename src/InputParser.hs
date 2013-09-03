@@ -1,4 +1,11 @@
-module InputParser where
+module InputParser ( 
+Line (..),
+Restrictions (..),
+RequestOptions (..),
+Record (..),
+Pattern
+)
+where
 import Control.Applicative hiding ((<|>))
 import Text.ParserCombinators.Parsec hiding (Line, many, optional)
 import Data.List.Utils (split)
@@ -16,7 +23,7 @@ import Text.Parsec.Permutation
 data Line = Line String Record
         deriving (Read,Show,Eq)
         
-data Record =   Unknown |
+data Record =   Error String |
                 Comment | 
                 ElementHide (Restrictions Domain) Exclude Pattern | 
                 RequestBlock Exclude Pattern RequestOptions
@@ -87,7 +94,7 @@ comment = Comment <$ (separatorLine <|> commentText)
                   separatorLine = lookAhead lineEnd
 
 unknown :: Parser Record
-unknown = Unknown <$ skipMany notLineEnd
+unknown = Error "Record type detection failed" <$ skipMany notLineEnd
 
 requestOptions :: Parser RequestOptions
 requestOptions = runPermParser $ RequestOptions 
@@ -166,11 +173,11 @@ notLineEnd = noneOf eol
 
 getMaybeAll :: [All] -> Maybe Bool
 getMaybeAll [] = Nothing
-getMaybeAll list = Just$getAll$mconcat list
+getMaybeAll list = Just $ getAll $ mconcat list
 
 getAllOrFalse :: [All] -> Bool
 getAllOrFalse [] = False
-getAllOrFalse list = getAll$mconcat list
+getAllOrFalse list = getAll $ mconcat list
 
 noRestrictions :: Restrictions a
 noRestrictions = Restrictions Nothing []

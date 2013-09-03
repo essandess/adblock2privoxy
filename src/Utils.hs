@@ -10,7 +10,16 @@ getZipListM,
 zipListM,
 maxList,
 minList,
-compareList
+compareList,
+pure',
+pure'',
+(<<$>),
+(<<<$>),
+(<<*>>),
+(<<<*>>>),
+($>),
+($>>),
+($>>>)
 ) where
 import Control.Applicative hiding (many)
 import Control.Monad.Writer
@@ -75,6 +84,7 @@ instance Struct3 (,,)   where struct3 = (,,)
 instance Struct4 (,,,)  where struct4 = (,,,)
 instance Struct5 (,,,,) where struct5 = (,,,,)
 
+
 ---------------------------------------------------------------------------------------------
 ------------------------- usage sample ------------------------------------------------------
 ---------------------------------------------------------------------------------------------
@@ -83,9 +93,9 @@ instance Struct5 (,,,,) where struct5 = (,,,,)
 -- [Just ( "a",  0 , False ),
 --  Just ( "" ,  1,  False ),
 --  Just ( "" ,  0 , True  )]
--------------------------
+------------------------- 
 testSquare :: [Maybe (String, Sum Int, Any)]
-testSquare = square3 (Just "a") (Just (Sum 1)) (Just (Any True))
+testSquare = square3 (Just "a") (Just (Sum $ length "")) (Just (Any True))
 
 -----------------------------------------------------------------------------------------------
 ------------------------- implementation ------------------------------------------------------
@@ -112,7 +122,7 @@ valueOnDiagonal val = do
 (<%>) :: (Applicative f, Monoid a) => State Int (Int -> f (a -> b))
                                        -> f a -- becomes State Int (Int -> f a) after lift with valueOnDiagonal
                                        -> State Int (Int -> f b)
-(<%>) a b = (liftA2.liftA2 $ (<*>)) a (valueOnDiagonal b)
+(<%>) a b = a <<<*>>> valueOnDiagonal b
 
 -- creates square matrix from given lines
 -- values are on main diagonal
@@ -121,6 +131,33 @@ makeSquare line = let   start = 0
                         (line', size) = runState line start
                   in    line' <$> [start .. size - 1]
                   
+-- pure level 2
+pure' :: (Applicative f, Applicative g) => a -> f (g a)
+pure' = pure.pure
+
 -- pure level 3
 pure'' :: (Applicative f, Applicative g, Applicative h) => a -> f (g (h a))
 pure'' = pure.pure.pure
+
+infixl 4 <<$>, <<<$>, $>, $>>, $>>>, <<*>>, <<<*>>>
+
+(<<$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
+(<<$>) = fmap.fmap
+
+(<<<$>) :: (Functor f, Functor g, Functor h) => (a -> b) -> f (g (h a)) -> f (g (h b))
+(<<<$>) = fmap.fmap.fmap
+
+($>) :: (Applicative f) => f (a -> b) -> a -> f b
+($>) a b = a <*> pure b 
+
+($>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> a -> f (g b)
+($>>) a b = a <<*>> pure' b 
+
+($>>>) :: (Applicative f, Applicative g, Applicative h) => f (g (h (a -> b))) -> a -> f (g (h b))
+($>>>) a b = a <<<*>>> pure'' b 
+
+(<<*>>) :: (Applicative f, Applicative g) => f (g (a -> b)) -> f (g a) -> f (g b)
+(<<*>>) = liftA2 (<*>)
+
+(<<<*>>>) :: (Applicative f, Applicative g, Applicative h) => f (g (h (a -> b))) ->  f (g (h a)) -> f (g (h b))
+(<<<*>>>) = liftA2 (<<*>>)
