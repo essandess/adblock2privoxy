@@ -12,7 +12,8 @@ executable AdBlock2Privoxy
                    MissingH,
                    parsec,
                    parsec-permutation,
-                   mtl
+                   mtl,
+                   containers
   ghc-options:     -Wall
   other-modules:   
                    Normalizer,
@@ -20,5 +21,8 @@ executable AdBlock2Privoxy
                    ParsecExt,
                    Foo,
                    Utils,
-                   ParserExtTests
+                   ParserExtTests,
+                   PatternConvertor,
+                   ElementBlocker,
+                   PolicyTree
 

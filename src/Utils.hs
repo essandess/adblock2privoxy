@@ -19,7 +19,8 @@ pure'',
 (<<<*>>>),
 ($>),
 ($>>),
-($>>>)
+($>>>),
+(.*.)
 ) where
 import Control.Applicative hiding (many)
 import Control.Monad.Writer
@@ -139,7 +140,10 @@ pure' = pure.pure
 pure'' :: (Applicative f, Applicative g, Applicative h) => a -> f (g (h a))
 pure'' = pure.pure.pure
 
-infixl 4 <<$>, <<<$>, $>, $>>, $>>>, <<*>>, <<<*>>>
+infixl 4 .*., <<$>, <<<$>, $>, $>>, $>>>, <<*>>, <<<*>>>
+
+(.*.) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
+(.*.) = (.).(.)
 
 (<<$>) :: (Functor f, Functor g) => (a -> b) -> f (g a) -> f (g b)
 (<<$>) = fmap.fmap

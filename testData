@@ -1,0 +1,52 @@
+[Adblock Plus 2.0]
+! root level
+#@#root Level Unblocked Block
+#@#rootLevelUnblock
+##rootLevelBlock
+##rootLevelBlock
+##root Level Unblocked Block
+##more Root Level Block
+##root excluded
+#@#root excluded3
+! domain level
+a.domain##root excluded3
+one.com##little block
+one.com##one.com block
+ad.one.com##one.com block
+two.com.us##more block
+three.com.us,all.com.us,bla.com.us##more block
+~foo.one.ru,~baz.one.ru,~wrong.com,one.ru,two.ru##ru block
+one.org,other.org,~no.other.org,two.one.org##org blocked unblock
+~something.org,~something.one.org,~very.deep.one.org,free.one.org,deep.one.org,~two.one.org#@#org blocked unblock
+smth.com#@#root excluded
+~smth.nl##root excluded2
+
+
+
+
+!ElemBlockData ["more Root Level Block","rootLevelBlock"] "" - ["root excluded","root excluded2"]
+!  "us" - ["root excluded","root excluded2"]
+!    "com" - ["root excluded","root excluded2"]
+!      "two" - ["more block","root excluded","root excluded2"]
+!      "three" - ["more block","root excluded","root excluded2"]
+!      "bla" - ["more block","root excluded","root excluded2"]
+!      "all" - ["more block","root excluded","root excluded2"]
+!  "ru" - ["root excluded","root excluded2"]
+!    "two" - ["root excluded","root excluded2","ru block"]
+!    "one" - ["root excluded","root excluded2","ru block"]
+!      "foo" - ["root excluded","root excluded2"]
+!      "baz" - ["root excluded","root excluded2"]
+!  "org" - ["root excluded","root excluded2"]
+!    "other" - ["org blocked unblock","root excluded","root excluded2"]
+!      "no" - ["root excluded","root excluded2"]
+!    "one" - ["org blocked unblock","root excluded","root excluded2"]
+!      "free" - ["root excluded","root excluded2"]
+!      "deep" - ["root excluded","root excluded2"]
+!        "very" - ["org blocked unblock","root excluded","root excluded2"]
+!  "nl" - ["root excluded","root excluded2"]
+!    "smth" - ["root excluded"]
+!  "com" - ["root excluded","root excluded2"]
+!    "smth" - ["root excluded2"]
+!    "one" - ["little block","one.com block","root excluded","root excluded2"]
+!done
+

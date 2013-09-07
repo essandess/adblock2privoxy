@@ -3,7 +3,9 @@ Line (..),
 Restrictions (..),
 RequestOptions (..),
 Record (..),
-Pattern
+Pattern,
+Domain,
+adblockFile
 )
 where
 import Control.Applicative hiding ((<|>))
@@ -160,7 +162,6 @@ eol :: String
 eol = "\r\n"
 
 lineSpaces :: Parser ()
---lineSpaces = spaces
 lineSpaces = skipMany (satisfy isLineSpace) <?> "white space"
     where isLineSpace c = c == ' ' || c == '\t'
 
