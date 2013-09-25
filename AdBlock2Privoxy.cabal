@@ -13,7 +13,9 @@ executable AdBlock2Privoxy
                    parsec,
                    parsec-permutation,
                    mtl,
-                   containers
+                   containers,
+                   filepath,
+                   directory
   ghc-options:     -Wall
   other-modules:   
                    Normalizer,
@@ -24,5 +26,6 @@ executable AdBlock2Privoxy
                    ParserExtTests,
                    PatternConvertor,
                    ElementBlocker,
-                   PolicyTree
+                   PolicyTree,
+                   HeadersMatcher
 

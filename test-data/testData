@@ -18,13 +18,14 @@ three.com.us,all.com.us,bla.com.us##more block
 ~foo.one.ru,~baz.one.ru,~wrong.com,one.ru,two.ru##ru block
 one.org,other.org,~no.other.org,two.one.org##org blocked unblock
 ~something.org,~something.one.org,~very.deep.one.org,free.one.org,deep.one.org,~two.one.org#@#org blocked unblock
-smth.com#@#root excluded
-~smth.nl##root excluded2
+!smth.com#@#root excluded
+!~smth.nl##root excluded2
 
 
 
 
-!ElemBlockData ["more Root Level Block","rootLevelBlock"] "" - ["root excluded","root excluded2"]
+!ElemBlockData ["more Root Level Block","rootLevelBlock"] 
+!"" - ["root excluded","root excluded2"]
 !  "us" - ["root excluded","root excluded2"]
 !    "com" - ["root excluded","root excluded2"]
 !      "two" - ["more block","root excluded","root excluded2"]

@@ -1,7 +1,8 @@
 module ElementBlocker (
-elemBlockTree,
+elemBlockData,
 BlockedRulesTree,
-ElemBlockData (..)
+ElemBlockData (..),
+writeElemBlock
 ) where
 import InputParser
 import PolicyTree
@@ -9,13 +10,45 @@ import Control.Applicative
 import qualified Data.Map as Map
 import Data.Maybe
 import Utils
-    
+import System.IO
+import System.FilePath.Posix
+import Data.List 
+import System.Directory (createDirectoryIfMissing)
+import Control.Monad (when)
+  
 
 type BlockedRulesTree = DomainTree [Pattern] 
 data ElemBlockData = ElemBlockData [Pattern] BlockedRulesTree deriving Show
 
-elemBlockTree :: [Line] -> ElemBlockData 
-elemBlockTree input = ElemBlockData 
+writeElemBlock :: String -> ElemBlockData -> IO ()
+writeElemBlock path (ElemBlockData flatPatterns rulesTree) = 
+    do
+       writeBlockTree path rulesTree 
+       writePatterns (path </> "adblock.common.css") flatPatterns           
+
+writeBlockTree :: String -> BlockedRulesTree -> IO ()
+writeBlockTree path (Node name patterns children) =
+    do
+        createDirectoryIfMissing True path'
+        _ <- sequence (writeBlockTree path' <$> children)
+        writePatterns filename patterns        
+    where
+        path' 
+            | null name = path
+            | otherwise = path </> name
+        filename = path' </> "adblock.css"
+        
+writePatterns :: String -> [Pattern] -> IO ()
+writePatterns filename patterns = 
+     do outFile <- openFile filename WriteMode
+        hPutStrLn outFile $ intercalate "," patterns
+        when (not $ null patterns) $ hPutStrLn outFile $ blockCss
+        hClose outFile
+     where
+        blockCss = "{display:none,visibility:hidden}"
+
+elemBlockData :: [Line] -> ElemBlockData 
+elemBlockData input = ElemBlockData 
                         (Map.foldrWithKey appendFlatPattern []              policyTreeMap)
                         (Map.foldrWithKey appendTreePattern (Node "" [] []) policyTreeMap) 
     where 

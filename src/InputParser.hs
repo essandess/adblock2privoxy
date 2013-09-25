@@ -3,6 +3,7 @@ Line (..),
 Restrictions (..),
 RequestOptions (..),
 Record (..),
+RequestType (..),
 Pattern,
 Domain,
 adblockFile
@@ -56,8 +57,8 @@ type Domain = String
 
 -- helpers
 data Restrictions a = Restrictions {
-                          positive :: Maybe [a],
-                          negative :: [a]}
+                          _positive :: Maybe [a],
+                          _negative :: [a]}
         deriving (Read,Show,Eq)
 
 --------------------------------------------------------------------------
