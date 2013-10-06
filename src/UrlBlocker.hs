@@ -12,7 +12,7 @@ import qualified Data.Map as Map
                
 
 data TaggerType = Client | Server
-data TaggerForwarder = Forward (Maybe Filter) FilterChain | Cancel Tagger 
+data TaggerForwarder = Forward (Maybe Filter) String | Cancel Tagger 
 data Tagger = Tagger { _taggerCode :: String, _forwarding :: [TaggerForwarder], _headerType :: HeaderType }
 
 data ActionType   = TaggerAction Tagger | BlockAction | TerminalAction
@@ -25,24 +25,24 @@ class Named a where
     name :: a -> String
 
 urlBlockData :: [Line] -> UrlBlockData 
-urlBlockData lns = mconcat [chainResult node | node <- sortBy cmpPolicy filterNodesList ]
+urlBlockData lns = mconcat [nodeResult node | node <- sortBy cmpPolicy filterNodesList ]
     where
     cmpPolicy node1 node2 = compare (_policy node1) (_policy node2)
     filterNodesList = Map.foldr (:) [] $ Map.fromListWith joinNodes $ lns >>= blockLine
         where
         blockLine (Line _ (RequestBlock policy pattern options)) 
-            = [(name $ _chain node, node) | node <- filterNodes policy [pattern] options]
+            = [(name node, node) | node <- filterNodes policy [pattern] options]
         blockLine _ = []  
-        joinNodes (Node patterns1 chain1 nested1 policy1) 
+        joinNodes (Node patterns1 filters1 nested1 policy1) 
                   (Node patterns2 _ nested2 _) 
-            = Node (patterns1 ++ patterns2) chain1 (nested1 || nested2) policy1 
+            = Node (patterns1 ++ patterns2) filters1 (nested1 || nested2) policy1 
         
 
-chainResult :: FilterNode -> UrlBlockData
-chainResult (Node patterns chain@(Chain filters nextChain) nested policy)
+nodeResult :: FilterNode -> UrlBlockData
+nodeResult node@(Node patterns (levelFilters : nextLevelFilters) nested policy)
     = (taggers, (mainAction : auxActions))
     where 
-    mainAction = Action { _actionCode = name chain,
+    mainAction = Action { _actionCode = name node,
                           _switches   = appendIf (policy == Unblock) 
                                             (Switch False BlockAction)
                                             (Switch True . TaggerAction <$> taggers),
@@ -55,30 +55,31 @@ chainResult (Node patterns chain@(Chain filters nextChain) nested policy)
                            return $ Action ('-' : name tagger) [Switch False $ TaggerAction tagger] [] True
                        _ -> mzero
     
-    taggers = filters >>= filterTaggers
+    taggers = levelFilters >>= filterTaggers
     filterTaggers (HeaderFilter headerType@HeaderType {_typeCode = typeCode} filter'@(Filter filterCode _ orEmpty))  
         | orEmpty   = [orEmptyTagger, mainTagger [Cancel orEmptyTagger]]
         | otherwise = [mainTagger []]
         where
-        mainTagger moreForwarders = Tagger { _taggerCode = makeName nextChain $ typeCode : filterCode,
-                                             _forwarding = Forward (Just filter') nextChain : moreForwarders,
+        nextNodeName = makeName policy nextLevelFilters
+        mainTagger moreForwarders = Tagger {   _taggerCode = nextNodeName $ typeCode : filterCode,
+                                               _forwarding = Forward (Just filter') (nextNodeName "") : moreForwarders,
+                                               _headerType = headerType }
+        orEmptyTagger             = Tagger { _taggerCode = nextNodeName ['n', typeCode],
+                                             _forwarding = [Forward Nothing (nextNodeName "")],
                                              _headerType = headerType }
-        orEmptyTagger             = Tagger { _taggerCode = makeName nextChain $ ['n', typeCode],
-                                             _forwarding = [Forward Nothing nextChain],
-                                             _headerType = headerType }
-chainResult (Node patterns chain nested policy) = ([], [baseAction])
-    where baseAction = Action (name chain) [Switch (policy == Block) TerminalAction] patterns nested
+nodeResult node@(Node patterns [] nested policy) = ([], [baseAction])
+    where baseAction = Action (name node) [Switch (policy == Block) TerminalAction] patterns nested
             
-instance Named FilterChain where
-    name chain = makeName chain "" 
+instance Named FilterNode where
+    name (Node _ filters _ policy)  = makeName policy filters "" 
     
-makeName :: FilterChain -> String -> String
-makeName (Terminal policy) rest 
+makeName :: Policy -> HeaderFilters -> String -> String
+makeName policy [] rest 
     = join [Templates.ab2pPrefix, toLower <$> show policy, (if null rest then "" else "-"), rest]
-makeName (Chain filters next) rest 
-    = makeName next $ join [filtersCode, (if null rest then "" else "-when-"), rest]
+makeName policy (levelFilters : nextLevelFilters) rest 
+    = makeName policy nextLevelFilters $ join [filtersCode, (if null rest then "" else "-when-"), rest]
     where 
-    filtersCode = (intercalate "-" $ filterCode <$> filters)
+    filtersCode = (intercalate "-" $ filterCode <$> levelFilters)
     filterCode (HeaderFilter HeaderType {_typeCode = typeCode} (Filter code _ orEmpty))
         | orEmpty   = 'n' : typeCode : '-' : mainCode  
         | otherwise = mainCode
@@ -98,14 +99,14 @@ instance Show Tagger where
     show (Tagger code forwarding HeaderType {_name = headerName, _taggerType =  taggerType }) 
         = intercalate "\n" (caption : (forward <$> forwarding))
         where caption = show taggerType ++ (':' : ' ' : code)
-              forward (Forward (Just filter') tagret) = foreardRegex headerName (_regex filter') ":" "" tagret
-              forward (Forward Nothing tagret) = foreardRegex "" "" "" "" tagret
-              forward (Cancel tagger) = foreardRegex headerName "" ":" "-" tagger
-              foreardRegex header lookahead' value tagPrefix tagret
+              forward (Forward (Just filter') tagret) = forwardRegex headerName (_regex filter') ":" "" tagret
+              forward (Forward Nothing tagret) = forwardRegex "" "" "" "" tagret
+              forward (Cancel tagger) = forwardRegex headerName "" ":" "-" (name tagger)
+              forwardRegex header lookahead' value tagPrefix tagret
                 = let modifier 
                         | '$' `elem` lookahead' = "TDi"
                         | otherwise            = "Ti"
-                  in join ["s@^", header, lookahead', value, ".*@", tagPrefix, name tagret, "@", modifier] 
+                  in join ["s@^", header, lookahead', value, ".*@", tagPrefix, tagret, "@", modifier] 
     
 instance Named Bool where
     name True = "+"

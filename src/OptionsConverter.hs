@@ -1,5 +1,5 @@
 module OptionsConverter (
-    FilterChain (..),
+    HeaderFilters,
     Filter (..),
     HeaderType (..),
     HeaderFilter (..),
@@ -21,10 +21,8 @@ data HeaderType = HeaderType {_name :: String, _taggerType :: TaggerType, _level
 data Filter = Filter { _code :: String, _regex :: String, _orEmpty :: Bool } deriving Eq  
 data HeaderPolicy = Specific Filter | Any | None deriving Eq  
 data HeaderFilter = HeaderFilter HeaderType Filter           
-data FilterChain = Terminal Policy | 
-                   Chain { _filters :: [HeaderFilter], _next :: FilterChain } 
-data FilterNode = Node { _pattern :: [Pattern], _chain :: FilterChain, _isNested :: Bool, _policy :: Policy}
-
+type HeaderFilters = [[HeaderFilter]]
+data FilterNode = Node { _pattern :: [Pattern], _filters :: HeaderFilters, _isNested :: Bool, _policy :: Policy}
 
 --TODO: SPECIAL CASE 1 & 2
 
@@ -40,17 +38,18 @@ referrer = HeaderType "referrer" Client 2 'R' referrerFilter
 
 filterNodes :: Policy -> [Pattern] -> RequestOptions -> [FilterNode]
 filterNodes policy patterns requestOptions 
-    = collectNodes patterns $ filterChain policy requestOptions 2
+    = collectNodes patterns $ headerFilters policy requestOptions 2
     where collectNodes _ Nothing = [] 
-          collectNodes patterns' (Just chain@Chain{ _next = next }) 
-            = Node patterns' chain (null patterns') policy : collectNodes [] (Just next)
-          collectNodes patterns' (Just chain) = [Node patterns' chain (null patterns') policy]
+          collectNodes patterns' (Just filters@(_: next)) 
+            = Node patterns' filters (null patterns') policy : collectNodes [] (Just next)
+          collectNodes patterns' (Just []) = [Node patterns' [] (null patterns') policy]
 
 
-filterChain :: Policy -> RequestOptions -> Int -> Maybe FilterChain
-filterChain policy _ 1 = Just $ Terminal policy
-filterChain policy requestOptions level
-    = do nextLevel <- filterChain policy requestOptions (level - 1)
+headerFilters :: Policy -> RequestOptions -> Int -> Maybe HeaderFilters
+headerFilters _ _ 1 = Just []
+headerFilters policy requestOptions level
+    = do 
+         nextLevel <- headerFilters policy requestOptions (level - 1)
          let filters = do
                        headerType <- allTypes
                        guard (_level headerType == level)
@@ -61,7 +60,7 @@ filterChain policy requestOptions level
          when (all isNothing filters && not (null filters)) $ fail "filters blocked"
          return $ case catMaybes filters of
                     []       -> nextLevel
-                    filters' -> Chain filters' nextLevel
+                    filters' -> filters' : nextLevel
  
 acceptFilter, contentTypeFilter, requestedWithFilter, referrerFilter :: FilterFabrique
 
