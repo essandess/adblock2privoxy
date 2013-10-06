@@ -1,15 +1,13 @@
 module Normalizer (
---opa,
 fixLines
 ) where
 import InputParser
 import Control.Applicative hiding (many)
-import Text.ParserCombinators.Parsec hiding (Line, (<|>))
 import Control.Monad.State
 import Data.List
 import Data.String.Utils (strip)
 import Utils
-import PatternConvertor
+import PatternConverter
 
  
 fixLines :: [Line] -> [Line]
@@ -21,19 +19,17 @@ fixLine  (Line text (ElementHide                  restrDom  excl        pattern)
  
 fixLine  (Line text                     requestBlock@(RequestBlock {})) 
        =  Line text <$> fixRequestBlock requestBlock 
-          where    
-              fixRequestBlock      (RequestBlock excl                       pattern                  options)
-                             = case RequestBlock excl <<$> fixBlockPattern pattern $>> fixOptions options of
-                                    Right res     -> res
-                                    Left  problem -> [Error $ show problem]
-              fixRequestBlock _ = undefined
-                             
-              fixOptions (RequestOptions                  restrRt  tp                  restrDom  mc coll dnt u) 
-                        = RequestOptions (fixRestrictions restrRt) tp (fixRestrictions restrDom) mc coll dnt u 
-              
-              fixBlockPattern :: Pattern -> Either ParseError [Pattern]
-              fixBlockPattern pattern = makePattern <<$> parseUrl pattern
-                                                   
+          where                
+              fixRequestBlock (RequestBlock excl                       pattern                  options)
+                                = let fixedOptions = options {
+                                                     _requestType = fixRestrictions $ _requestType options,
+                                                     _domain      = fixRestrictions $      _domain options
+                                                     }
+                                      fixedPattern = makePattern (_matchCase options) <<$> parseUrl pattern
+                                  in case RequestBlock excl <<$> fixedPattern $>> fixedOptions of
+                                          Right res     -> res
+                                          Left  problem -> [Error $ show problem]
+              fixRequestBlock _ = undefined        
           
 fixLine a = [a]
 

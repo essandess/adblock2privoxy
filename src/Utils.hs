@@ -11,6 +11,7 @@ zipListM,
 maxList,
 minList,
 compareList,
+appendIf,
 pure',
 pure'',
 (<<$>),
@@ -44,6 +45,11 @@ maxList a b = if compareList a b == LT then b else a
 
 minList :: Ord a => [a] -> [a] -> [a]
 minList a b = if compareList a b == GT then b else a
+
+appendIf :: Bool -> a -> [a] -> [a]
+appendIf condition item list
+    | condition = item : list
+    | otherwise = list
 
 newtype ZipListM a = ZipListM { getZipList' :: ZipList a } deriving (Functor, Applicative)
 getZipListM :: ZipListM a -> [a]

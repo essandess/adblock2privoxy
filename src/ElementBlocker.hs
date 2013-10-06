@@ -4,7 +4,8 @@ BlockedRulesTree,
 ElemBlockData (..),
 writeElemBlock
 ) where
-import InputParser
+import InputParser hiding (Policy(..))
+import qualified InputParser 
 import PolicyTree
 import Control.Applicative
 import qualified Data.Map as Map
@@ -14,7 +15,8 @@ import System.IO
 import System.FilePath.Posix
 import Data.List 
 import System.Directory (createDirectoryIfMissing)
-import Control.Monad (when)
+import Control.Monad (unless)
+import qualified Templates 
   
 
 type BlockedRulesTree = DomainTree [Pattern] 
@@ -42,28 +44,26 @@ writePatterns :: String -> [Pattern] -> IO ()
 writePatterns filename patterns = 
      do outFile <- openFile filename WriteMode
         hPutStrLn outFile $ intercalate "," patterns
-        when (not $ null patterns) $ hPutStrLn outFile $ blockCss
+        unless (null patterns) $ hPutStrLn outFile $ Templates.blockCss
         hClose outFile
-     where
-        blockCss = "{display:none,visibility:hidden}"
+     
+        
 
 elemBlockData :: [Line] -> ElemBlockData 
 elemBlockData input = ElemBlockData 
                         (Map.foldrWithKey appendFlatPattern []              policyTreeMap)
                         (Map.foldrWithKey appendTreePattern (Node "" [] []) policyTreeMap) 
     where 
-    policyTreeMap = policyTrees input
-    
-    policyTrees :: [Line] -> Map.Map String PolicyTree
-    policyTrees lns =  Map.unionWith (trimTree Block .*. mergePolicyTrees Unblock) 
+    policyTreeMap :: Map.Map String PolicyTree
+    policyTreeMap =  Map.unionWith (trimTree Block .*. mergePolicyTrees Unblock) 
                             blockLinesMap 
                             (erasePolicy Block <$> unblockLinesMap)
         where 
-        blockLinesMap = Map.fromListWith (mergeAndTrim Block) (mapMaybe blockLine lns)
-        unblockLinesMap = Map.fromListWith (mergeAndTrim Unblock) (mapMaybe unblockLine lns)
-        unblockLine (Line _ (ElementHide domains True pattern)) = (,) pattern <$> restrictionsTree Unblock domains
+        blockLinesMap = Map.fromListWith (mergeAndTrim Block) (mapMaybe blockLine input)
+        unblockLinesMap = Map.fromListWith (mergeAndTrim Unblock) (mapMaybe unblockLine input)
+        unblockLine (Line _ (ElementHide domains InputParser.Unblock pattern)) = (,) pattern <$> restrictionsTree Unblock domains
         unblockLine _ = Nothing  
-        blockLine (Line _ (ElementHide domains False pattern)) = (,) pattern <$> restrictionsTree Block domains
+        blockLine (Line _ (ElementHide domains InputParser.Block pattern)) = (,) pattern <$> restrictionsTree Block domains
         blockLine _ = Nothing  
         
     appendTreePattern ::  Pattern -> PolicyTree -> BlockedRulesTree -> BlockedRulesTree

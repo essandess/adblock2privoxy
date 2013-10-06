@@ -24,8 +24,10 @@ executable AdBlock2Privoxy
                    Foo,
                    Utils,
                    ParserExtTests,
-                   PatternConvertor,
                    ElementBlocker,
                    PolicyTree,
-                   HeadersMatcher
+                   OptionsConverter,
+                   PatternConverter,
+                   UrlBlocker,
+                   Templates
 

@@ -12,7 +12,7 @@ erasePolicy
 ,domainTree
 ) where
 import Control.Applicative
-import InputParser
+import InputParser hiding (Policy(..))
 import Data.String.Utils (split)
 import Utils
 
@@ -22,7 +22,7 @@ type PolicyTree = DomainTree NodePolicy
 
 showTree :: Show a => Int -> DomainTree a -> String
 showTree lvl (Node name value children) 
-    = concat $ 
+    = concat $  
         [replicate (lvl * 2) ' ', "\"", name, "\" - ", (show value)]
         ++ (('\n':) <$> showTree (lvl + 1) <$> children)
 

@@ -6,6 +6,7 @@ Record (..),
 RequestType (..),
 Pattern,
 Domain,
+Policy (..),
 adblockFile
 )
 where
@@ -17,7 +18,7 @@ import Data.Char
 import Data.Monoid
 import Control.Monad
 import Text.Parsec.Permutation
-
+ 
 --------------------------------------------------------------------------
 ---------------------------- data model  ---------------------------------
 --------------------------------------------------------------------------
@@ -26,32 +27,29 @@ import Text.Parsec.Permutation
 data Line = Line String Record
         deriving (Read,Show,Eq)
         
+data Policy = Block | Unblock deriving (Show, Eq, Read, Ord)        
 data Record =   Error String |
                 Comment | 
-                ElementHide (Restrictions Domain) Exclude Pattern | 
-                RequestBlock Exclude Pattern RequestOptions
+                ElementHide (Restrictions Domain) Policy Pattern | 
+                RequestBlock Policy Pattern RequestOptions
         deriving (Read,Show,Eq)
                    
 data RequestType =  Script | Image | Stilesheet | Object | Xmlhttprequest | Popup |
                     ObjectSubrequest | Subdocument | Document | Elemhide | Other
                     deriving (Read, Show,Eq)
 
-data RequestOptions = RequestOptions 
-                            (Restrictions RequestType) 
-                            (Maybe ThirdParty) 
-                            (Restrictions Domain) 
-                            MatchCase
-                            (Maybe Collapse)
-                            DoNotTrack
-                            [String]
+data RequestOptions = RequestOptions {
+                            _requestType :: Restrictions RequestType, 
+                            _thirdParty  :: Maybe Bool, 
+                            _domain      :: Restrictions Domain, 
+                            _matchCase   :: Bool,
+                            _collapse    :: Maybe Bool,
+                            _doNotTrack  :: Bool,
+                            _unknown     :: [String]
+                      }
         deriving (Read,Show,Eq)
 
 -- primitive
-type ThirdParty = Bool
-type Exclude = Bool
-type Collapse = Bool
-type MatchCase = Bool
-type DoNotTrack = Bool
 type Pattern = String
 type Domain = String
 
@@ -80,13 +78,13 @@ line = Line <$> text <*> choice (try <$> [comment, elementHide, match, unknown])
 elementHide :: Parser Record
 elementHide = ElementHide <$> domains ',' <*> excludeMatch <*> pattern
     where
-        excludeMatch = char '#' *> ((False <$ string "#") <|> (True <$ string "@#"))
+        excludeMatch = char '#' *> ((Block <$ string "#") <|> (Unblock <$ string "@#"))
         pattern = manyTill anyChar (lookAhead lineEnd)
 
 match :: Parser Record
 match = RequestBlock <$> excludeMatch <*> pattern <*> options
     where
-        excludeMatch = option False $ True <$ count 2 (char '@')
+        excludeMatch = option Block $ Unblock <$ count 2 (char '@')
         patternEnd = try (return () <* char '$' <* requestOptions <* lineEnd) <|> try (return () <* lineEnd)
         pattern = manyTill anyChar (lookAhead patternEnd)
         options = option '$' (char '$') *> requestOptions

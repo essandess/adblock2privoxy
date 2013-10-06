@@ -1,4 +1,4 @@
-module PatternConvertor (
+module PatternConverter (
 makePattern,
 parseUrl
 ) where
@@ -28,11 +28,14 @@ data UrlPattern = UrlPattern {
                    _regex :: Bool }
               deriving (Show)
 
-makePattern :: UrlPattern -> Pattern
-makePattern (UrlPattern bindStart proto host query bindEnd isRegex) =  if query' == "" 
-                                                                            then host' 
-                                                                            else host' ++ '/' : query' 
+makePattern :: Bool -> UrlPattern -> Pattern
+makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex) 
+            | query' == "" = host' 
+            | otherwise    = host' ++ separator' ++ query' 
     where 
+        separator' 
+            | matchCase = "/(?-i)"
+            | otherwise = "/"
         host' = case host of
                     "" -> ""
                     _  -> changeFirst.changeLast $ host
@@ -52,7 +55,8 @@ makePattern (UrlPattern bindStart proto host query bindEnd isRegex) =  if query'
                                     
         query' = case query of
                     ""     -> ""
-                    (start:other) -> if isRegex then query
+                    (start:other) -> 
+                              if isRegex then query
                               else case query of
                                 '*' : '/' : other' -> replaceQuery '/' other' True
                                 '*' : '^' : other' -> replaceQuery '^' other' True  
