@@ -295,16 +295,18 @@ object-subrequest= accept/content-type = video/*, */octet-stream, audio/*
 xmlhttprequest=X-Requested-With
 ~xmlhttprequest=no X-Requested-With
 
-third-party = Referer filled and != host
+third-party = Referer filled and != host AND accept/content-type empty or (!= */xml && != */html)
 ~third-party = Referer = host
 domain=<domain> = Referer = <domain>
 domain=~<domain> = Referer is filled and != <domain>
 
 subdocument = seth header X-Frame-Options DENY; 
-subdocument,third-party = seth header X-Frame-Options DENY; 
+subdocument,third-party = seth header X-Frame-Options SAMEORIGIN; 
 ~subdocument = (accept/content-type filled and != */html) or xmlhttprequest
 
-popup = mark urls in window.open??
+popup = special handling with popup-block.js: replace window.open a filtering implementation
+
+
 
 
 Special whitelist:
@@ -329,13 +331,15 @@ domain=~<domain> = Referer is empty or != <domain>
 
 
 subdocument = don't set header X-Frame-Options DENY;
+subdocument,~third-party = don't set header X-Frame-Options DENY;
 ~subdocument = accept/content-type empty or != */html OR ~third-party or xmlhttprequest !!! SPECIAL CASE 2
 
 elemhide = disable ab2p-element-hide
 ~elemhide = undefined
 
-document = ???
-popup = ???
+document = accept/content-type empty = */html, */xml or xmlhttprequest
+~document = accept/content-type empty or != */html, */xml or xmlhttprequest
+popup = special handling with popup-block.js
 
 Classification:
 

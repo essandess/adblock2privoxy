@@ -99,9 +99,9 @@ unknown = Error "Record type detection failed" <$ skipMany notLineEnd
 
 requestOptions :: Parser RequestOptions
 requestOptions = runPermParser $ RequestOptions 
-                                    <$> requestTypes 
+                                    <$> (fixRestrictions <$> requestTypes) 
                                     <*> (getMaybeAll <$> requestOptionNorm "ThirdParty") 
-                                    <*> optionalDomain
+                                    <*> (fixRestrictions <$> optionalDomain)
                                     <*> (getAllOrFalse <$> requestOptionNorm  "MatchCase")
                                     <*> (getMaybeAll <$> requestOptionNorm "Collapse")
                                     <*> (getAllOrFalse <$> requestOptionNorm "Donottrack")
@@ -150,7 +150,7 @@ domain = join <$> intersperse "." <$> parts
             domainPart = many1 (alphaNum <|> char '-')
 
 domains :: Char -> Parser (Restrictions Domain)
-domains sep = runPermParser restrictions
+domains sep = fixRestrictions <$> runPermParser restrictions
     where 
         restrictions = Restrictions <$> (Just <$> manyPerm  (try domain)) <*> manyPerm  (try notDomain) <* manyPerm (try separator)
         separator = lineSpaces *> char sep <* lineSpaces
@@ -181,3 +181,15 @@ getAllOrFalse list = getAll $ mconcat list
 
 noRestrictions :: Restrictions a
 noRestrictions = Restrictions Nothing []
+
+fixRestrictions :: (Eq a) => Restrictions a -> Restrictions a
+fixRestrictions = annigilate.deduplicate.allowAll
+        where 
+        allowAll (Restrictions (Just []) n) = Restrictions Nothing n
+        allowAll a = a
+        deduplicate (Restrictions (Just p) n) = Restrictions (Just $ nub p) (nub n)
+        deduplicate a = a
+        annigilate (Restrictions (Just p) n) = 
+                            let notN x = x `notElem` n
+                            in Restrictions (Just $ filter notN p) n
+        annigilate a = a

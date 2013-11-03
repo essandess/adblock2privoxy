@@ -1,8 +1,5 @@
 module ElementBlocker (
-elemBlockData,
-BlockedRulesTree,
-ElemBlockData (..),
-writeElemBlock
+elemBlock
 ) where
 import InputParser hiding (Policy(..))
 import qualified InputParser 
@@ -21,6 +18,9 @@ import qualified Templates
 
 type BlockedRulesTree = DomainTree [Pattern] 
 data ElemBlockData = ElemBlockData [Pattern] BlockedRulesTree deriving Show
+
+elemBlock :: String -> [Line] -> IO ()
+elemBlock path = writeElemBlock path . elemBlockData
 
 writeElemBlock :: String -> ElemBlockData -> IO ()
 writeElemBlock path (ElemBlockData flatPatterns rulesTree) = 
@@ -54,7 +54,7 @@ elemBlockData input = ElemBlockData
                         (Map.foldrWithKey appendFlatPattern []              policyTreeMap)
                         (Map.foldrWithKey appendTreePattern (Node "" [] []) policyTreeMap) 
     where 
-    policyTreeMap :: Map.Map String PolicyTree
+    policyTreeMap :: Map.Map String PolicyTree 
     policyTreeMap =  Map.unionWith (trimTree Block .*. mergePolicyTrees Unblock) 
                             blockLinesMap 
                             (erasePolicy Block <$> unblockLinesMap)

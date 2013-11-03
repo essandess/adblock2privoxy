@@ -9,16 +9,15 @@ executable AdBlock2Privoxy
   main-is:         Main.hs
   build-depends:   
                    base >= 4,
-                   MissingH,
                    parsec,
-                   parsec-permutation,
                    mtl,
                    containers,
                    filepath,
-                   directory
+                   directory,
+                   MissingH,
+                   parsec-permutation
   ghc-options:     -Wall
   other-modules:   
-                   Normalizer,
                    InputParser,
                    ParsecExt,
                    Foo,
@@ -29,5 +28,7 @@ executable AdBlock2Privoxy
                    OptionsConverter,
                    PatternConverter,
                    UrlBlocker,
-                   Templates
+                   Templates,
+                   PopupBlocker,
+                   Statistics
 

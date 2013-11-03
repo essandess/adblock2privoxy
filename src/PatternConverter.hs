@@ -13,10 +13,6 @@ import Data.List.Utils (split)
 import ParsecExt
 import Utils
 
---opa s = case parseUrl s of
---        Left e -> putStrLn $ show e
---        Right urls -> putStrLn $ intercalate "\n" $ makePattern <$> urls 
-
 data SideBind = Hard | Soft | None deriving (Show, Eq) 
 
 data UrlPattern = UrlPattern { 
