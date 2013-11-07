@@ -3,5 +3,5 @@ BlockMethod(..),
 TaggerType(..)
 ) where
 
-data BlockMethod = Request | Xframe | Elem
+data BlockMethod = Request | Xframe | Elem | Dnt
 data TaggerType = Client | Server

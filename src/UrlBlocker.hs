@@ -21,54 +21,70 @@ import System.FilePath.Posix
 import PatternConverter          
 
 data TaggerType = Client | Server
-data TaggerForwarder = Forward (Maybe Filter) String | Cancel Tagger 
+data TaggerForwarder = Forward (Maybe Filter) String | CancelTagger String
 data Tagger = Tagger { _taggerCode :: String, _forwarding :: [TaggerForwarder], _headerType :: HeaderType }
 
 data ActionType   = TaggerAction Tagger | BlockAction | TerminalAction BlockMethod
 data ActionSwitch = Switch Bool ActionType
 data Action = Action { _actionCode :: String, _switches :: [ActionSwitch], _patterns :: [Pattern], _hasTag :: Bool }
 
+data ChainType = Regular | Nested | Negate deriving (Eq, Ord)
 type UrlBlockData = ([Tagger], [Action])
-data BlockMethod = Request | Xframe | Elem deriving (Show, Eq)
-data FilteringNode = Node { _pattern :: [Pattern], _filters :: HeaderFilters, _isNested :: Bool, 
+data BlockMethod = Request | Xframe | Elem | Dnt deriving (Show, Eq)
+data FilteringNode = Node { _pattern :: [Pattern], _filters :: HeaderFilters, _nodeType :: ChainType, 
     _policy :: Policy, _method :: BlockMethod }
+
 
 class Named a where
     name :: a -> String
 
-urlBlock :: String -> [Line] -> IO()
-urlBlock path = writeBlockData path . urlBlockData 
-    
-writeBlockData :: String -> UrlBlockData -> IO()
-writeBlockData path (taggers, actions) = 
-    do writeContent (path </> "adblock.filter") "#AbBlock generated filters -- don't edit --" taggers
-       writeContent (path </> "adblock.action") "#AbBlock generated actions -- don't edit --" actions
-
-writeContent :: Show a => String -> String -> [a] -> IO()
-writeContent filename header content = 
-     do outFile <- openFile filename WriteMode
-        hPutStrLn outFile (header ++ "\n") 
-        hPutStrLn outFile $ intercalate "\n\n" $ show <$> content
-        hClose outFile
+urlBlock :: String -> [String] -> [Line] -> IO()
+urlBlock path info = writeBlockData . urlBlockData 
+    where    
+    writeBlockData :: UrlBlockData -> IO()
+    writeBlockData (taggers, actions) = 
+        do writeContent (path </> "ab2p.filter") Templates.filtersFilePrefix taggers
+           writeContent (path </> "ab2p.action") Templates.actionsFilePrefix actions
+    writeContent filename header content = 
+         do outFile <- openFile filename WriteMode
+            hPutStrLn outFile (header) 
+            _ <- mapM (hPutStrLn outFile) $ ('#':) <$> info
+            hPutStrLn outFile $ intercalate "\n\n" $ show <$> content
+            hClose outFile
 
 urlBlockData :: [Line] -> UrlBlockData 
-urlBlockData lns = mconcat [nodeResult node | node <- shortenNodes $ sortBy cmpPolicy filterNodesList ]
+urlBlockData lns = filterBlockData $ result
     where
+    result = mconcat [nodeResult node | node <- shortenNodes $ sortBy cmpPolicy $ filterNodesList blockLines]
     cmpPolicy node1 node2 = compare (_policy node1) (_policy node2)
-    filterNodesList = Map.foldr (:) [] $ Map.fromListWith joinNodes $ lns >>= blockLine
-        where
-        blockLine (Line _ (RequestBlock policy pattern options)) 
-            = [(name node, node) | node <- filteringNodes policy (errorToPattern expandedPatterns) options]
+    blockLines = lns >>= blockLine
+        where 
+        blockLine (Line position (RequestBlock policy pattern options)) 
+            = filteringNodes policy (errorToPattern expandedPatterns) options
             where 
             expandedPatterns = makePattern (_matchCase options) <<$> parseUrl pattern
-            errorToPattern (Left parseError) = ['#' : pattern ++ " - " ++ show parseError]
-            errorToPattern (Right patterns') = patterns'
+            sourceText = recordSourceText position 
+            errorToPattern (Left parseError) = ["# ERROR: " ++ sourceText  ++ " - " ++ show parseError]
+            errorToPattern (Right patterns') = ("# " ++ sourceText) : patterns'
         blockLine _ = []
-        joinNodes (Node patterns1 filters1 nested1 policy1 method1) 
-                  (Node patterns2 _ nested2 _ _) 
-            = Node (patterns1 ++ patterns2) filters1 (nested1 || nested2) policy1 method1
+    
+filterNodesList :: [FilteringNode] -> [FilteringNode]
+filterNodesList nodes = Map.foldr (:) [] $ Map.fromListWith joinNodes $ list
+    where
+    list = [(name node, node) | node <- nodes]
+    joinNodes (Node patterns1 filters1 type1 policy1 method1) 
+              (Node patterns2 _ type2 _ _) 
+        = Node (patterns1 ++ patterns2) filters1 (max type1 type2) policy1 method1
 
-
+filterBlockData :: UrlBlockData -> UrlBlockData
+filterBlockData blockData = (result, snd blockData)
+    where
+    result = Map.foldr (:) [] $ Map.fromListWith joinTaggers taggerItems
+    taggerItems = [(name tagger, tagger) | tagger <- fst blockData]
+    metric = length._forwarding
+    joinTaggers tagger1 tagger2 | metric tagger1 >= metric tagger2 = tagger1
+                                | otherwise                        = tagger2
+         
 shortenNodes :: [FilteringNode] -> [FilteringNode]      
 shortenNodes nodes = evalState (mapM shortenNode nodes) initialState
     where 
@@ -91,73 +107,92 @@ shortenNodes nodes = evalState (mapM shortenNode nodes) initialState
 
 filteringNodes :: Policy -> [Pattern] -> RequestOptions -> [FilteringNode]
 filteringNodes policy patterns requestOptions 
-    = join $ mainResult ++ subdocumentResult ++ elemhideResult
+    = join.join $  [mainResult, subdocumentResult, elemhideResult, dntResult]
     where 
     mainResult = optionsToNodes mainOptions $> Request
     subdocumentResult = maybeToList (optionsToNodes (singleTypeOptions Subdocument) $> Xframe)
-    elemhideResult = maybeToList (optionsToNodes (singleTypeOptions Elemhide) $> Elem)
+    elemhideResult = maybeToList (optionsToNodes (boolOptions _elemHide) $> Elem)
+    dntResult = maybeToList (optionsToNodes (boolOptions _doNotTrack) $> Dnt)
     requestType = _requestType requestOptions
     mainOptions = [requestOptions {_requestType = requestType { _positive = mainRequestTypes } }]
-    mainRequestTypes = filter (/= Subdocument) <$> (_positive requestType)
+    mainRequestTypes = filter (`notElem` [Subdocument, Popup]) <$> (_positive requestType)
+    boolOptions getter = case getter requestOptions of
+        False -> Nothing
+        True  -> Just requestOptions {_requestType = Restrictions Nothing [], _thirdParty = Nothing}
     singleTypeOptions singleType = 
         do
         foundTypes <- filter (== singleType) <$> (_positive requestType)
         foundType <- listToMaybe foundTypes
         return requestOptions {_requestType = requestType { _positive = Just [foundType] } }
     optionsToNodes options = collectNodes patterns <$> headerFilters policy 2 <$> options
+    nestedOrRegular True = Nested
+    nestedOrRegular False = Regular
     collectNodes :: [Pattern] -> Maybe HeaderFilters -> BlockMethod -> [FilteringNode]
     collectNodes _ Nothing _ = [] 
-    collectNodes patterns' (Just []) method = [Node patterns' [] (null patterns') policy method]
-    collectNodes patterns' (Just filters@(_: next)) method
-            = Node patterns' filters (null patterns') policy Request : collectNodes [] (Just next) method
+    collectNodes patterns' (Just []) method = [Node patterns' [] (nestedOrRegular $ null patterns') policy method]
+    collectNodes patterns' (Just filters@(levelFilters: next)) method
+            = Node patterns' filters (nestedOrRegular $ null patterns') policy method 
+              : (levelFilters >>= negateNode) 
+              ++ collectNodes [] (Just next) method
+        where 
+        negateNode negateFilter@(HeaderFilter _ (Filter {_orEmpty = True})) 
+                = [Node [] ([negateFilter] : next) Negate policy method]
+        negateNode _ = [] 
           
-
 nodeResult :: FilteringNode -> UrlBlockData
-nodeResult node@(Node patterns (levelFilters : nextLevelFilters) nested policy method)
-    = (taggers, (mainAction : auxActions))
+nodeResult node@(Node patterns [] nodeType policy method) = ([], [baseAction])
+    where baseAction = Action (name node) [Switch (policy == Block) $ TerminalAction method] patterns (nodeType == Nested)
+nodeResult node@(Node _ ([flt] : nextLevelFilters) Negate policy method)
+    = ([negateTagger], [negateAction])
+    where
+    negateAction = Action (name node) [Switch False $ TaggerAction negateTagger] [] True
+    negateTagger = newTagger flt nextLevelFilters policy method Negate []
+nodeResult node@(Node patterns (levelFilters : nextLevelFilters) nodeType policy method)
+    = (taggers, [action])
     where 
-    mainAction = Action { _actionCode = name node,
-                          _switches   = appendIf (policy == Unblock && method == Request) 
-                                            (Switch False BlockAction)
-                                            (Switch True . TaggerAction <$> taggers),
-                          _patterns   = patterns,
-                          _hasTag     = nested } 
-   
-    auxActions = do forwarder <- taggers >>= _forwarding
-                    case forwarder of
-                       Cancel tagger -> 
-                           return $ Action ('-' : name tagger) [Switch False $ TaggerAction tagger] [] True
-                       _ -> mzero
-    
-    taggers = levelFilters >>= filterTaggers
-    filterTaggers (HeaderFilter headerType@HeaderType {_typeCode = typeCode} filter'@(Filter filterCode _ orEmpty))  
-        | orEmpty  = [orEmptyTagger, mainTagger [Cancel orEmptyTagger]]
-        | otherwise   = [mainTagger []]
+    action = Action { _actionCode = name node,
+                      _switches   = appendIf (policy == Unblock && method == Request) 
+                                        (Switch False BlockAction)
+                                        (Switch True . TaggerAction <$> taggers),
+                      _patterns   = patterns,
+                      _hasTag     = (nodeType == Nested) }  
+    taggers = filterTaggers <$> levelFilters
+    filterTaggers flt@(HeaderFilter _ (Filter _ _ orEmpty))  
+        = newTagger flt nextLevelFilters policy method Regular moreForwarding
         where
-        nextLevelName = filtersCode policy method nextLevelFilters
-        mainTagger moreForwarders = Tagger {   _taggerCode = nextLevelName $ typeCode : filterCode,
-                                               _forwarding = Forward (Just filter') (nextLevelName "") : moreForwarders,
-                                               _headerType = headerType }
-        orEmptyTagger             = Tagger { _taggerCode = nextLevelName ['n', typeCode],
-                                             _forwarding = [Forward Nothing (nextLevelName "")],
-                                             _headerType = headerType }
-nodeResult node@(Node patterns [] nested policy method) = ([], [baseAction])
-    where baseAction = Action (name node) [Switch (policy == Block) $ TerminalAction method] patterns nested
+        orEmptyTaggerCode   = filtersCode ([flt] : nextLevelFilters) Negate  policy method ""
+        moreForwarding  | orEmpty = [CancelTagger orEmptyTaggerCode]
+                        | otherwise = []
             
+newTagger :: HeaderFilter -> HeaderFilters -> Policy -> BlockMethod -> ChainType -> [TaggerForwarder] -> Tagger
+newTagger flt@(HeaderFilter headerType filter') nextLevelFilters policy method chainType moreForwarding
+   = Tagger { _taggerCode = taggerCode,
+              _forwarding = Forward filter'' nextLevelActionCode : moreForwarding,
+              _headerType = headerType }     
+   where
+   filter'' | chainType == Negate = Nothing
+            | otherwise           = Just filter'
+   taggerCode          = filtersCode ([flt] : nextLevelFilters) chainType policy method ""        
+   nextLevelActionCode = filtersCode nextLevelFilters  Nested policy method ""   
+           
 instance Named FilteringNode where
-    name (Node _ filters _ policy method)  = filtersCode policy method filters "" 
+    name (Node _ filters Negate policy method)  = '-' : filtersCode filters Negate policy method "" 
+    name (Node _ filters _ policy method)  = filtersCode filters Nested policy method "" 
     
-filtersCode :: Policy -> BlockMethod -> HeaderFilters -> String -> String
-filtersCode policy method [] rest 
+filtersCode :: HeaderFilters -> ChainType -> Policy -> BlockMethod -> String -> String
+filtersCode [] _ policy method rest 
     = join [Templates.ab2pPrefix, toLower <$> show policy, "-" ,toLower <$> show method,(if null rest then "" else "-"), rest]
-filtersCode policy method (levelFilters : nextLevelFilters) rest 
-    = filtersCode policy method nextLevelFilters $ join [levelCode, (if null rest then "" else "-when-"), rest]
+filtersCode (levelFilters : nextLevelFilters) chainType policy method rest 
+    = filtersCode nextLevelFilters Nested policy method $ join [levelCode, (if null rest then "" else "-when-"), rest]
     where 
     levelCode = (intercalate "-" $ filterCode <$> levelFilters)
     filterCode (HeaderFilter HeaderType {_typeCode = typeCode} (Filter code _ orEmpty))
-        | orEmpty   = 'n' : typeCode : '-' : mainCode  
-        | otherwise    = mainCode
-        where mainCode = typeCode : code
+        | chainType == Negate            = negateCode
+        | chainType == Nested && orEmpty = negateCode ++ '-' : mainCode  
+        | otherwise                      = mainCode
+        where 
+        mainCode = typeCode : code
+        negateCode = 'n' : [typeCode]
 
 instance Show TaggerType where
     show Client = "CLIENT-HEADER-TAGGER"
@@ -175,11 +210,10 @@ instance Show Tagger where
         where caption = show taggerType ++ (':' : ' ' : code)
               forward (Forward (Just filter') tagret) = forwardRegex headerName (_regex filter') ":" "" tagret
               forward (Forward Nothing tagret) = forwardRegex "" "" "" "" tagret
-              forward (Cancel tagger) = forwardRegex headerName "" ":" "-" (name tagger)
+              forward (CancelTagger taggerCode) = forwardRegex headerName "" ":" "-" taggerCode
               forwardRegex header lookahead' value tagPrefix tagret
-                = let modifier 
-                        | '$' `elem` lookahead' = "TDi"
-                        | otherwise            = "Ti"
+                = let modifier | '$' `elem` lookahead' = "TDi"
+                               | otherwise             = "Ti"
                   in join ["s@^", header, lookahead', value, ".*@", tagPrefix, tagret, "@", modifier] 
     
 instance Named Bool where
@@ -190,8 +224,13 @@ instance Show ActionSwitch where
     show (Switch enable (TerminalAction method)) = Templates.terminalActionSwitch enable method
     show (Switch enable BlockAction) = name enable ++ "block"
     show (Switch enable (TaggerAction tagger)) 
-        = join [name enable, name $ _taggerType $ _headerType $ tagger, "{", name tagger,  "}" ] 
-
+        = intercalate " \\\n " $ mainText : (_forwarding tagger >>= cancelTaggerText)
+        where 
+        mainText = join [name enable, name $ _taggerType $ _headerType $ tagger, "{", name tagger,  "}" ]
+        cancelTaggerText (CancelTagger cancelTaggerCode) 
+            = [join [name enable, name $ _taggerType $ _headerType $ tagger, "{", cancelTaggerCode,  "}" ]]
+        cancelTaggerText _ = []                
+    
 instance Named Action where
     name = _actionCode
     
@@ -200,9 +239,8 @@ instance Show Action where
         = intercalate "\n" (caption : switches' : patterns')
         where caption = '#' : code
               switches' = join ["{", intercalate " \\\n " (show <$> switches), " \\\n}"]
-              patterns' 
-                | hasTag    = join ["TAG:^", code, "$"] : patterns
-                | otherwise = patterns  
+              patterns' | hasTag    = join ["TAG:^", code, "$"] : patterns
+                        | otherwise = patterns  
                 
                 
              

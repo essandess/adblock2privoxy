@@ -23,77 +23,93 @@ data HeaderFilter = HeaderFilter HeaderType Filter
 type HeaderFilters = [[HeaderFilter]]
 
 allTypes :: [HeaderType]
-allTypes = [accept, contentType, requestedWith, referrer]
- 
-accept, contentType, requestedWith, referrer :: HeaderType
+allTypes = [accept, contentType, requestedWith, referer]
+
+accept, contentType, requestedWith, referer :: HeaderType
 accept = HeaderType "accept" Client 1 'A' acceptFilter
 contentType = HeaderType "content-type" Server 1 'C' contentTypeFilter
 requestedWith = HeaderType "x-requested-with" Client 1 'X' requestedWithFilter
-referrer = HeaderType "referrer" Client 2 'R' referrerFilter
+referer = HeaderType "referer" Client 2 'R' refererFilter
 
 
 headerFilters :: Policy -> Int -> RequestOptions -> Maybe HeaderFilters
 headerFilters _ 0 _ = Just []
-headerFilters policy level requestOptions
-    = do 
-         nextLevel <- headerFilters policy (level - 1) requestOptions
-         let filters = do
+headerFilters policy level requestOptions@RequestOptions{_requestType = requestType}
+    = let requestOptions' = requestOptions{_requestType = convertOther requestType} 
+      in do 
+         nextLevel <- headerFilters policy (level - 1) requestOptions'
+         let
+            passthrough = checkPassthrough policy requestOptions'  
+            filters = do
                        headerType <- allTypes
                        guard (_level headerType == level)
-                       case (_fabrique headerType) policy requestOptions of
+                       case (_fabrique headerType) policy requestOptions' of
                           Specific filter' -> return $ Just $ HeaderFilter headerType filter'
                           None -> return Nothing
                           Any -> mzero
-         when (all isNothing filters && not (null filters)) $ fail "filters blocked"
+         when (not passthrough && all isNothing filters && not (null filters)) $ fail "filters blocked"
          return $ case catMaybes filters of
                     []       -> nextLevel
                     filters' -> filters' : nextLevel
- 
-acceptFilter, contentTypeFilter, requestedWithFilter, referrerFilter :: FilterFabrique
 
-contentTypeFilter  policy (RequestOptions (Restrictions positive negative) thirdParty _ _ _ _ _)
-    | fromMaybe False emptyPositive   = None
+convertOther :: Restrictions RequestType -> Restrictions RequestType
+convertOther (Restrictions positive negative)= Restrictions positive' negative'
+    where 
+    allContentOptions = [Script, Image, Stylesheet, Object, ObjectSubrequest, Document]
+    positiveList = fromMaybe [] positive
+    negative' | Other `elem` positiveList = allContentOptions \\ positiveList
+              | otherwise                 = negative
+    positive' | Other `elem` negative     = Just $ allContentOptions \\ negative' 
+              | positive == Just [Other]  = Nothing
+              | otherwise                 = positive
+    
+checkPassthrough :: Policy -> RequestOptions -> Bool
+checkPassthrough _ RequestOptions {_requestType = (Restrictions positive _) }
+    = fromMaybe False $ (not . null . intersect [Subdocument]) <$> positive 
+ 
+acceptFilter, contentTypeFilter, requestedWithFilter, refererFilter :: FilterFabrique
+
+contentTypeFilter  policy (RequestOptions (Restrictions positive negative) thirdParty _ _ _ _ _ _)
+    | fromMaybe True emptyPositive && (not $ isNothing positive) = None
     | result == mempty = Any 
     | otherwise = Specific $ Filter code regex orEmpty
     where 
-    negative' 
-        | fromMaybe False thirdParty = Document : negative
-        | otherwise                  = negative   
+    negative' | isNothing positive && fromMaybe False thirdParty = Document : negative
+              | otherwise                  = negative   
     negativePart = mappend ("n", "") <$> convert False negative'
     positivePart = positive >>= convert True
     result@(code, regex) = mconcat $ catMaybes [positivePart, negativePart]
     orEmpty = (policy == Unblock) && isNothing positive
     emptyPositive = null . filter (`notElem` (fromMaybe "" $ fst <$> negativePart)) . fst <$> positivePart
    
-    convert _ [] = Nothing
-    convert include requestTypes = let
-        contentTypes' = nub $ requestTypes >>= contentTypes include
-        code' = sort $ (head . dropWhile (`elem` "/(?:x-)")) <$> contentTypes'
-        regex' = lookahead contentTypes' ".*" include
-        in Just (code', regex')
+    convert  _      []                        = Nothing
+    convert include requestTypes | null code' = Nothing
+                                 | otherwise  = Just (code', regex')
+        where   contentTypes' = nub $ requestTypes >>= contentTypes include
+                code' = sort $ (head . dropWhile (`elem` "/(?:x-)")) <$> contentTypes'
+                regex' = lookahead contentTypes' "[\\s\\w]*" include
     
 acceptFilter excludePattern options = case contentTypeFilter excludePattern options of
                                             Specific res -> Specific res {_orEmpty = False}
                                             other      -> other
                              
                                         
-requestedWithFilter _ (RequestOptions (Restrictions positive negative) _ _ _ _ _ _) =
+requestedWithFilter _ RequestOptions{ _requestType = Restrictions positive negative } =
         case result of
             Nothing       -> Any
-            Just result'  -> Specific $ Filter "" (lookahead ["XMLHttpRequest"] "\\s*" result')  (not result')
+            Just result'  -> Specific $ Filter (code result') (lookahead ["xmlhttprequest"] "\\s*" result')  (not result')
     where
-    result
-        | Xmlhttprequest `elem` negative                             = Just False
-        | Xmlhttprequest `elem` fromMaybe [] positive                = Just True
-        |                           (hasContentTypes False    negative) 
-          && (fromMaybe True $ not . hasContentTypes True <$> positive)   = Just True
-        | otherwise                                                  = Nothing
-    
-    
+    code True = "x"
+    code False = "nx"
+    result | Xmlhttprequest `elem` negative                                  = Just False
+           | Xmlhttprequest `elem` fromMaybe [] positive                     = Just True
+           |                           (hasContentTypes False    negative) 
+             && (fromMaybe True $ not . hasContentTypes True <$> positive)   = Just True
+           | otherwise                                                       = Nothing
     hasContentTypes include = not . all null . fmap (contentTypes include)
 
 
-referrerFilter policy (RequestOptions _ thirdParty (Restrictions positive negative) _ _ _ _) 
+refererFilter policy RequestOptions{ _thirdParty = thirdParty, _domain = Restrictions positive negative }
     | fromMaybe False emptyPositive  = None
     | result == mempty = Any 
     | otherwise = Specific $ Filter code regex orEmpty
@@ -101,11 +117,9 @@ referrerFilter policy (RequestOptions _ thirdParty (Restrictions positive negati
     negativePart = mappend ("n", "") <$> convert False negative
     positivePart = positive >>= convert True
     thirdPartyPart tp = (if tp then "t" else "nt", lookahead ["$host"] ".*\\/" (not tp))
-    result@(code, regex) = mconcat $ catMaybes [positivePart, negativePart, thirdPartyPart <$> thirdParty]
-    
+    result@(code, regex) = mconcat $ catMaybes [positivePart, negativePart, thirdPartyPart <$> thirdParty]    
     emptyPositive = null . filter (`notElem` negative) <$> positive
     orEmpty =  (policy == Unblock) && (isNothing positive || (not $ fromMaybe True thirdParty))
-     
     convert _ [] = Nothing
     convert include domains = let
         code' = intercalate "][" $ sort domains
@@ -122,7 +136,7 @@ lookahead list prefix include = join ["(?", (if include then "=" else "!"),
 contentTypes :: Bool -> RequestType -> [String]
 contentTypes _ Script = ["/(?:x-)?javascript"]
 contentTypes _ Image = ["image/"]
-contentTypes _ Stilesheet = ["/css"]
+contentTypes _ Stylesheet = ["/css"]
 contentTypes _ Object = ["video/","audio/","/(?:x-)?shockwave-flash"]
 contentTypes _ ObjectSubrequest = ["video/","audio/","/octet-stream"]
 contentTypes _ Document = ["/html", "/xml"]

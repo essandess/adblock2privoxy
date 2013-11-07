@@ -1,0 +1,28 @@
+#AbBlock system filters -- don't edit --
+
+
+SERVER-HEADER-TAGGER: ab2p-block-s
+s@.*@ab2p-block-s@Ti
+
+
+CLIENT-HEADER-TAGGER: ab2b-unblock-u
+s@user-agent.*@ab2p-unblock-u@Ti
+
+SERVER-HEADER-TAGGER: ab2p-unblock-d
+s@date.*@ab2p-unblock-d@Ti
+
+SERVER-HEADER-TAGGER: ab2p-unblock-s
+s@server.*@ab2p-unblock-s@Ti
+
+
+SERVER-HEADER-TAGGER: ab2p-handle-as-document-s
+s@^content-type(?=:.*(?:\/html|\/xml)):.*@ab2p-handle-as-document@Ti
+
+CLIENT-HEADER-TAGGER: ab2p-handle-as-document-c
+s@^accept(?=:.*(?:\/html|\/xml)):.*@ab2p-handle-as-document@Ti
+
+SERVER-HEADER-FILTER: ab2p-xframe-filter
+s@.*\sHTTP\/1.*@$&\r\nX-Frame-Options: DENY@i
+
+FILTER: ab2p-elemhide-filter
+s@[^'"]\s*<head.*>(?=\s*[^'"])@$&<link rel="stylesheet" type="text/css" href="http://privoxy.zubr.me/ab2p.common.css"></link><link rel="stylesheet" type="text/css" href="http://privoxy.zubr.me/$host/ab2p.css"></link>@isUD

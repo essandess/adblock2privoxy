@@ -30,5 +30,6 @@ executable AdBlock2Privoxy
                    UrlBlocker,
                    Templates,
                    PopupBlocker,
-                   Statistics
+                   Statistics,
+                   SourceInfo
 

@@ -7,12 +7,13 @@ import System.FilePath.Posix
 
 type Stat = Map.Map String Int 
 
-stat :: String -> [Line] -> IO ()
-stat path lns = 
+stat :: String -> [String] -> [Line] -> IO ()
+stat path info lns = 
     let result = collectStat lns 
         filename = path </> "stat.txt"
     in do  
         outFile <- openFile filename WriteMode
+        _ <- mapM (hPutStrLn outFile) info
         hPutStrLn outFile $ show result
         hClose outFile
 
@@ -27,10 +28,10 @@ isJustFilled Nothing = False
 isJustFilled (Just list) = not.null $ list
 
 getStat :: Line -> Stat-> Stat
-getStat  (Line _ Comment) = increment "comments"
+getStat  (Line _ Comment {} ) = increment "comments"
 getStat  (Line _ Error {}) = increment "errors"
 getStat  (Line _ ElementHide {}) = increment "elemHide"
-getStat  (Line _ (RequestBlock policy _ (RequestOptions requestType thirdParty domains _ _ _ _))) = r
+getStat  (Line _ (RequestBlock policy _ (RequestOptions requestType thirdParty domains _ _ _ _ _))) = r
     where 
     r s = r8 s
     r1 = increment "RBlock"
@@ -48,3 +49,10 @@ getStat  (Line _ (RequestBlock policy _ (RequestOptions requestType thirdParty d
        | otherwise = r6
     r8 | isJust thirdParty && ((not.null._negative $ requestType) || ((isJustFilled . _positive) $ requestType)) = r7 . increment "requestType&thirdPartyRBlock"
        | otherwise = r7
+       
+--TODO: Elemhide only in unblock requests, only in positive part
+--Document only in unblock requests 
+       
+       
+       
+       

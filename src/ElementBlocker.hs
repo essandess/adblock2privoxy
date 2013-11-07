@@ -19,34 +19,35 @@ import qualified Templates
 type BlockedRulesTree = DomainTree [Pattern] 
 data ElemBlockData = ElemBlockData [Pattern] BlockedRulesTree deriving Show
 
-elemBlock :: String -> [Line] -> IO ()
-elemBlock path = writeElemBlock path . elemBlockData
-
-writeElemBlock :: String -> ElemBlockData -> IO ()
-writeElemBlock path (ElemBlockData flatPatterns rulesTree) = 
-    do
-       writeBlockTree path rulesTree 
-       writePatterns (path </> "adblock.common.css") flatPatterns           
-
-writeBlockTree :: String -> BlockedRulesTree -> IO ()
-writeBlockTree path (Node name patterns children) =
-    do
-        createDirectoryIfMissing True path'
-        _ <- sequence (writeBlockTree path' <$> children)
-        writePatterns filename patterns        
+elemBlock :: String -> [String] -> [Line] -> IO ()
+elemBlock path info = writeElemBlock . elemBlockData
     where
-        path' 
-            | null name = path
-            | otherwise = path </> name
-        filename = path' </> "adblock.css"
-        
-writePatterns :: String -> [Pattern] -> IO ()
-writePatterns filename patterns = 
-     do outFile <- openFile filename WriteMode
-        hPutStrLn outFile $ intercalate "," patterns
-        unless (null patterns) $ hPutStrLn outFile $ Templates.blockCss
-        hClose outFile
-     
+    writeElemBlock :: ElemBlockData -> IO ()
+    writeElemBlock (ElemBlockData flatPatterns rulesTree) = 
+        do
+           writeBlockTree path rulesTree 
+           writePatterns (path </> "ab2p.common.css") flatPatterns           
+    writeBlockTree :: String -> BlockedRulesTree -> IO ()
+    writeBlockTree nodePath (Node name patterns children) =
+        do
+            createDirectoryIfMissing True path'
+            _ <- sequence (writeBlockTree path' <$> children)
+            writePatterns filename patterns        
+        where
+            path' 
+                | null name = nodePath
+                | otherwise = nodePath </> name
+            filename = path' </> "ab2p.css"      
+    writePatterns :: String -> [Pattern] -> IO ()
+    writePatterns filename patterns = 
+         do outFile <- openFile filename WriteMode
+            hPutStrLn outFile "/*"
+            _ <- mapM (hPutStrLn outFile) $ info
+            hPutStrLn outFile "*/"
+            hPutStrLn outFile $ intercalate "," patterns
+            unless (null patterns) $ hPutStrLn outFile $ Templates.blockCss
+            hClose outFile
+         
         
 
 elemBlockData :: [Line] -> ElemBlockData 
