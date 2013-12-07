@@ -46,7 +46,7 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                     changeFirst []    = []
                     changeFirst (first:cs) 
                         | first == '*'                       =       '.' :  '*'  : cs
-                        | bindStart /= None || proto /= ""   =             first : cs      
+                        | bindStart == Hard || proto /= ""   =             first : cs      
                         | otherwise                          = '.' : '*' : first : cs
                                     
         query' = case query of
@@ -107,7 +107,7 @@ parseUrl =
         protocolChar = oneOf (delete '/' $ nub $ join protocols)
         
         postfilter :: UrlPattern -> [UrlPattern]
-        postfilter url@(UrlPattern bs proto host query be _) = regular ++ regex ++ www
+        postfilter url@(UrlPattern bs proto host query be _) = regular ++ regex -- ++ www
             where 
                 regex = if     proto == "" 
                             && host == "" 
@@ -135,14 +135,14 @@ parseUrl =
                                     query' = if "*" `isSuffixOf` host && query /= "" then '*' : query else query 
                                 in [url {_query = query'}] 
                              else []
-                www = case regular of
-                            [regular'] -> [regular'{_host = "www." ++ host} |
-                                             bs == Soft &&
-                                             proto == "" &&
-                                             host /= "" &&
-                                             not ("*" `isPrefixOf` host) && 
-                                             not ("." `isPrefixOf` host)]
-                            _ -> []
+--                www = case regular of
+--                            [regular'] -> [regular'{_host = "www." ++ host} |
+--                                             bs == Soft &&
+--                                             proto == "" &&
+--                                             host /= "" &&
+--                                             not ("*" `isPrefixOf` host) && 
+--                                             not ("." `isPrefixOf` host)]
+--                            _ -> []
         -- TODO: process port as an url part
         urlParts :: [StringStateParser (String,String,String)]
         urlParts = square3 proto (manyCases host) (oneCase query)

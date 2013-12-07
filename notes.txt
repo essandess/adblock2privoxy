@@ -1,9 +1,15 @@
+еще:
+поделить цсс на части, чтоб хром ел
+third-party работает не так, поддомены - разрешить!
+
+
 Check:
-lookahead in privoxy (works)
 taggers order in privoxy 
 
+third-party:
 
-
+s@^referer:.*@$&\n$host@Di
+s@^referer(?!:\s*(?:https?:\/\/)?(?:[\w.-]*\.)?([\w-]+\.[\w-]+)[^\w.-].*\1$):.*@vata@si
 
 
 

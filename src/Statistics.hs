@@ -4,6 +4,7 @@ import InputParser
 import Data.Maybe 
 import System.IO
 import System.FilePath.Posix
+import Control.Applicative ((<$>))
 
 type Stat = Map.Map String Int 
 
@@ -11,10 +12,15 @@ stat :: String -> [String] -> [Line] -> IO ()
 stat path info lns = 
     let result = collectStat lns 
         filename = path </> "stat.txt"
+        resultLine (name, value) = concat [name, ": ", show value] 
+        errorLine (Line position (Error text)) 
+            = [concat ["ERROR: ", recordSourceText position, " - ", text]]
+        errorLine _ = []
     in do  
         outFile <- openFile filename WriteMode
         _ <- mapM (hPutStrLn outFile) info
-        hPutStrLn outFile $ show result
+        _ <- sequence $ hPutStrLn outFile . resultLine <$> Map.toAscList result
+        _ <- sequence $ hPutStrLn outFile <$> (lns >>= errorLine)
         hClose outFile
 
 collectStat :: [Line] -> Stat

@@ -100,7 +100,7 @@ match = RequestBlock <$> excludeMatch <*> pattern <*> options
     where
         excludeMatch = option Block $ Unblock <$ count 2 (char '@')
         patternEnd = try (return () <* char '$' <* requestOptions <* lineEnd) <|> try (return () <* lineEnd)
-        pattern = manyTill anyChar (lookAhead patternEnd)
+        pattern = manyTill (noneOf "#") (lookAhead patternEnd)
         options = option '$' (char '$') *> requestOptions
 
 comment :: Parser Record
@@ -198,16 +198,13 @@ noRestrictions :: Restrictions a
 noRestrictions = Restrictions Nothing []
 
 fixRestrictions :: (Eq a) => Restrictions a -> Restrictions a
-fixRestrictions = annigilate.deduplicate.allowAll
+fixRestrictions = deduplicate.allowAll
         where 
         allowAll (Restrictions (Just []) n) = Restrictions Nothing n
         allowAll a = a
         deduplicate (Restrictions (Just p) n) = Restrictions (Just $ nub p) (nub n)
         deduplicate a = a
-        annigilate (Restrictions (Just p) n) = 
-                            let notN x = x `notElem` n
-                            in Restrictions (Just $ filter notN p) n
-        annigilate a = a
+
         
         
         

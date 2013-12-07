@@ -1,5 +1,15 @@
 [Adblock Plus 2.0]
-e1.ru$image
-@@|www.e1.ru$image
-e1.ru##.small_black
-
+! Лицензия: nene
+! Last modified: 07 Nov 2013 16:40 UTC
+! e1.ru$~popup
+!@@|www.e1.ru$image
+!e1.ru##.small_black
+!||graphics.pop6.com/javascript/$script,third-party,domain=~adultfriendfinder.com,~adultfriendfinder.co.uk
+!||adm.fwmrm.net/p/msnbc_live$object-subrequest,third-party,domain=~msnbc.msn.com,~www.nbcnews.com
+!/mydirtyhobby$domain=mydirtyhobby.com,mydirtyhobby.de
+yandex.ru$third-party
+se7en.ru##div.sign > a[target="_blank"]
+|r.e1.ru
+||yahoo.com$image,popup
+||some.test*net
+super.us$popup,~popup,third-party

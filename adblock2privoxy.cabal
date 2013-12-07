@@ -1,10 +1,10 @@
-name:           AdBlock2Privoxy
-version:        0.1
+name:           adblock2privoxy
+version:        1.0
 cabal-version:  >= 1.2
 build-type:     Simple
 author:         alexey
 
-executable AdBlock2Privoxy
+executable adblock2privoxy
   hs-source-dirs:  src
   main-is:         Main.hs
   build-depends:   
@@ -15,7 +15,10 @@ executable AdBlock2Privoxy
                    filepath,
                    directory,
                    MissingH,
-                   parsec-permutation
+                   parsec-permutation,
+                   time >=1.4.0 && <1.5,
+                   old-locale >=1.0.0 && <1.1,
+                   strict >=0.3.2 && <0.4
   ghc-options:     -Wall
   other-modules:   
                    InputParser,

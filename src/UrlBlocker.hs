@@ -30,7 +30,7 @@ data Action = Action { _actionCode :: String, _switches :: [ActionSwitch], _patt
 
 data ChainType = Regular | Nested | Negate deriving (Eq, Ord)
 type UrlBlockData = ([Tagger], [Action])
-data BlockMethod = Request | Xframe | Elem | Dnt deriving (Show, Eq)
+data BlockMethod = Request | Xframe | Elem | Dnt | Xpopup deriving (Show, Eq)
 data FilteringNode = Node { _pattern :: [Pattern], _filters :: HeaderFilters, _nodeType :: ChainType, 
     _policy :: Policy, _method :: BlockMethod }
 
@@ -107,15 +107,16 @@ shortenNodes nodes = evalState (mapM shortenNode nodes) initialState
 
 filteringNodes :: Policy -> [Pattern] -> RequestOptions -> [FilteringNode]
 filteringNodes policy patterns requestOptions 
-    = join.join $  [mainResult, subdocumentResult, elemhideResult, dntResult]
+    = join.join $  [mainResult, subdocumentResult, elemhideResult, dntResult, popupResult]
     where 
     mainResult = optionsToNodes mainOptions $> Request
     subdocumentResult = maybeToList (optionsToNodes (singleTypeOptions Subdocument) $> Xframe)
     elemhideResult = maybeToList (optionsToNodes (boolOptions _elemHide) $> Elem)
     dntResult = maybeToList (optionsToNodes (boolOptions _doNotTrack) $> Dnt)
+    popupResult = maybeToList (optionsToNodes (singleTypeOptions Popup) $> Xpopup)
     requestType = _requestType requestOptions
-    mainOptions = [requestOptions {_requestType = requestType { _positive = mainRequestTypes } }]
-    mainRequestTypes = filter (`notElem` [Subdocument, Popup]) <$> (_positive requestType)
+    mainOptions = [requestOptions {_requestType = requestType { _positive = mainPosRequestTypes } }]
+    mainPosRequestTypes = filter (`notElem` [Subdocument]) <$> (_positive requestType)
     boolOptions getter = case getter requestOptions of
         False -> Nothing
         True  -> Just requestOptions {_requestType = Restrictions Nothing [], _thirdParty = Nothing}
@@ -211,11 +212,13 @@ instance Show Tagger where
               forward (Forward (Just filter') tagret) = forwardRegex headerName (_regex filter') ":" "" tagret
               forward (Forward Nothing tagret) = forwardRegex "" "" "" "" tagret
               forward (CancelTagger taggerCode) = forwardRegex headerName "" ":" "-" taggerCode
-              forwardRegex header lookahead' value tagPrefix tagret
-                = let modifier | '$' `elem` lookahead' = "TDi"
-                               | otherwise             = "Ti"
-                  in join ["s@^", header, lookahead', value, ".*@", tagPrefix, tagret, "@", modifier] 
-    
+              forwardRegex header expression value tagPrefix tagret
+                = let  (modifier, lookahead' : additionalLines) 
+                            | '\n' `elem` expression = ("i", split "\n" expression) -- the case for third-party
+                            | otherwise              = ("Ti", [expression])
+                  in intercalate "\n" $ additionalLines ++ 
+                        [join ["s@^", header, lookahead', value, ".*@", tagPrefix, tagret, "@", modifier]] 
+
 instance Named Bool where
     name True = "+"
     name False = "-"                  

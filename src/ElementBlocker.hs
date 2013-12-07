@@ -8,12 +8,13 @@ import Control.Applicative
 import qualified Data.Map as Map
 import Data.Maybe
 import Utils
-import System.IO
+import System.IO hiding (hGetContents)
 import System.FilePath.Posix
 import Data.List 
-import System.Directory (createDirectoryIfMissing)
-import Control.Monad (unless)
+import System.Directory
 import qualified Templates 
+import Control.Monad 
+import Debug.Trace (traceShow)
   
 
 type BlockedRulesTree = DomainTree [Pattern] 
@@ -25,31 +26,53 @@ elemBlock path info = writeElemBlock . elemBlockData
     writeElemBlock :: ElemBlockData -> IO ()
     writeElemBlock (ElemBlockData flatPatterns rulesTree) = 
         do
-           writeBlockTree path rulesTree 
-           writePatterns (path </> "ab2p.common.css") flatPatterns           
-    writeBlockTree :: String -> BlockedRulesTree -> IO ()
-    writeBlockTree nodePath (Node name patterns children) =
+           let debugPath = path </> "debug"
+           createDirectoryIfMissing True path
+           cont <- getDirectoryContents path
+           _ <- sequence $ removeOld <$> cont 
+           createDirectoryIfMissing True debugPath
+           writeBlockTree path debugPath rulesTree 
+           writePatterns (path </> "ab2p.common.css") (debugPath </> "ab2p.common.css") flatPatterns      
+    removeOld entry' = 
+        let entry = path </> entry'
+        in do 
+           isDir <- doesDirectoryExist entry
+           case isDir of
+                True -> when (head entry' /= '.') $ removeDirectoryRecursive entry    
+                False -> when (takeExtension entry == ".css") $ removeFile entry             
+    writeBlockTree :: String -> String -> BlockedRulesTree -> IO ()
+    writeBlockTree nodePath debugNodePath (Node name patterns children) =
         do
             createDirectoryIfMissing True path'
-            _ <- sequence (writeBlockTree path' <$> children)
-            writePatterns filename patterns        
+            createDirectoryIfMissing True debugPath'
+            _ <- sequence (writeBlockTree path' debugPath' <$> children)
+            writePatterns filename debugFilename patterns        
         where
             path' 
                 | null name = nodePath
                 | otherwise = nodePath </> name
-            filename = path' </> "ab2p.css"      
-    writePatterns :: String -> [Pattern] -> IO ()
-    writePatterns filename patterns = 
+            debugPath' 
+                | null name = debugNodePath
+                | otherwise = debugNodePath </> name
+            filename = path' </> "ab2p.css"
+            debugFilename = debugPath' </> "ab2p.css"      
+    writePatterns :: String -> String -> [Pattern] -> IO ()
+    writePatterns _ _ [] = return ()
+    writePatterns filename debugFilename patterns = 
+         do 
+            writeCssFile debugFilename $ intercalate "\n" $ (++ Templates.blockCss) <$> patterns
+            writeCssFile filename $ intercalate "\n" $ (++ Templates.blockCss) <$> intercalate "," <$> 
+                                                                            splitEvery 4000 patterns
+         where 
+         splitEvery n = takeWhile (not . null) . unfoldr (Just . splitAt n)
+    writeCssFile filename content = 
          do outFile <- openFile filename WriteMode
             hPutStrLn outFile "/*"
             _ <- mapM (hPutStrLn outFile) $ info
             hPutStrLn outFile "*/"
-            hPutStrLn outFile $ intercalate "," patterns
-            unless (null patterns) $ hPutStrLn outFile $ Templates.blockCss
-            hClose outFile
+            hPutStrLn outFile content
+            hClose outFile 
          
-        
-
 elemBlockData :: [Line] -> ElemBlockData 
 elemBlockData input = ElemBlockData 
                         (Map.foldrWithKey appendFlatPattern []              policyTreeMap)

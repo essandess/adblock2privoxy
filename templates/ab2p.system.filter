@@ -15,14 +15,25 @@ SERVER-HEADER-TAGGER: ab2p-unblock-s
 s@server.*@ab2p-unblock-s@Ti
 
 
-SERVER-HEADER-TAGGER: ab2p-handle-as-document-s
-s@^content-type(?=:.*(?:\/html|\/xml)):.*@ab2p-handle-as-document@Ti
+SERVER-HEADER-TAGGER: ab2p-handle-as-image-s
+s@^content-type(?=:.*(?:image\/)):.*@ab2p-handle-as-image@Ti
 
-CLIENT-HEADER-TAGGER: ab2p-handle-as-document-c
-s@^accept(?=:.*(?:\/html|\/xml)):.*@ab2p-handle-as-document@Ti
+CLIENT-HEADER-TAGGER: ab2p-handle-as-image-c
+s@^accept(?=:(?:image\/)):.*@ab2p-handle-as-image@Ti
 
 SERVER-HEADER-FILTER: ab2p-xframe-filter
 s@.*\sHTTP\/1.*@$&\r\nX-Frame-Options: DENY@i
 
+CLIENT-HEADER-TAGGER: ab2p-elemhide-check-debug
+s@^cookie:.*ab2p-elemhide-filter-debug=true(?:;|$).*@ab2p-elemhide-filter-debug@Ti
+
 FILTER: ab2p-elemhide-filter
 s@[^'"]\s*<head.*>(?=\s*[^'"])@$&<link rel="stylesheet" type="text/css" href="http://privoxy.zubr.me/ab2p.common.css"></link><link rel="stylesheet" type="text/css" href="http://privoxy.zubr.me/$host/ab2p.css"></link>@isUD
+
+FILTER: ab2p-elemhide-filter-debug
+s@[^'"]\s*<head.*>(?=\s*[^'"])@$&<link rel="stylesheet" type="text/css" href="http://privoxy.zubr.me/debug/ab2p.common.css"></link><link rel="stylesheet" type="text/css" href="http://privoxy.zubr.me/$host.debug/ab2p.css"></link>@isUD
+
+FILTER: ab2p-popup-filter
+s@[^'"]\s*<head.*>(?=\s*[^'"])@$&<script type="text/javascript">parent==window&&opener&&close()</script>@isUD
+
+

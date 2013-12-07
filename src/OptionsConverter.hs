@@ -35,11 +35,11 @@ referer = HeaderType "referer" Client 2 'R' refererFilter
 headerFilters :: Policy -> Int -> RequestOptions -> Maybe HeaderFilters
 headerFilters _ 0 _ = Just []
 headerFilters policy level requestOptions@RequestOptions{_requestType = requestType}
-    = let requestOptions' = requestOptions{_requestType = convertOther requestType} 
+    = let requestOptions' = requestOptions{_requestType = convertPopup $ convertOther requestType} 
       in do 
          nextLevel <- headerFilters policy (level - 1) requestOptions'
          let
-            passthrough = checkPassthrough policy requestOptions'  
+            passthrough = checkPassthrough requestOptions'  
             filters = do
                        headerType <- allTypes
                        guard (_level headerType == level)
@@ -52,6 +52,13 @@ headerFilters policy level requestOptions@RequestOptions{_requestType = requestT
                     []       -> nextLevel
                     filters' -> filters' : nextLevel
 
+convertPopup :: Restrictions RequestType -> Restrictions RequestType
+convertPopup (Restrictions positive negative)= Restrictions positive' negative
+    where 
+    positiveContentTypes = fromMaybe [] positive >>= contentTypes True
+    positive' | Popup `elem` negative && null positiveContentTypes = Nothing
+              | otherwise                                          = positive 
+
 convertOther :: Restrictions RequestType -> Restrictions RequestType
 convertOther (Restrictions positive negative)= Restrictions positive' negative'
     where 
@@ -63,9 +70,9 @@ convertOther (Restrictions positive negative)= Restrictions positive' negative'
               | positive == Just [Other]  = Nothing
               | otherwise                 = positive
     
-checkPassthrough :: Policy -> RequestOptions -> Bool
-checkPassthrough _ RequestOptions {_requestType = (Restrictions positive _) }
-    = fromMaybe False $ (not . null . intersect [Subdocument]) <$> positive 
+checkPassthrough :: RequestOptions -> Bool
+checkPassthrough RequestOptions {_requestType = (Restrictions positive _) }
+    = fromMaybe False $ (not . null . intersect [Subdocument, Popup]) <$> positive 
  
 acceptFilter, contentTypeFilter, requestedWithFilter, refererFilter :: FilterFabrique
 
@@ -116,19 +123,25 @@ refererFilter policy RequestOptions{ _thirdParty = thirdParty, _domain = Restric
     where
     negativePart = mappend ("n", "") <$> convert False negative
     positivePart = positive >>= convert True
-    thirdPartyPart tp = (if tp then "t" else "nt", lookahead ["$host"] ".*\\/" (not tp))
+    thirdPartyPart tp = (if tp then "t" else "nt", 
+                         concat ["(?", lookAheadPolicy $ not tp, 
+                                 ":\\s*(?:https?:\\/\\/)?(?:[\\w.-]*\\.)?([\\w-]+\\.[\\w-]+)[^\\w.-].*\\1$)",
+                                 "\ns@^referer:.*@$&\\t$host@Di"])
     result@(code, regex) = mconcat $ catMaybes [positivePart, negativePart, thirdPartyPart <$> thirdParty]    
     emptyPositive = null . filter (`notElem` negative) <$> positive
     orEmpty =  (policy == Unblock) && (isNothing positive || (not $ fromMaybe True thirdParty))
     convert _ [] = Nothing
     convert include domains = let
         code' = intercalate "][" $ sort domains
-        regex' = lookahead domains ".*[./]" include
+        regex' = lookahead domains "[^\\n]*[./]" include
         in Just ("[" ++ code' ++ "]", regex')
-           
+
+lookAheadPolicy :: Bool -> [Char]
+lookAheadPolicy True = "="    
+lookAheadPolicy False = "!"           
     
 lookahead :: [String] -> String -> Bool -> String    
-lookahead list prefix include = join ["(?", (if include then "=" else "!"), 
+lookahead list prefix include = join ["(?", lookAheadPolicy include, 
                   ":", prefix ,"(?:", intercalate "|" $ excapeRx <$> list, "))"]
                   where
                   excapeRx = replace "/" "\\/" . replace "." "\\."                          
