@@ -8,7 +8,7 @@ data-files:
                 templates/ab2p.system.filter
 extra-source-files: README
 license:        GPL-3
-maintainer:     Alexey Zubritsky <a@zubr.me>
+maintainer:     Alexey Zubritsky
 license-file:   LICENSE
 stability:      stable
 synopsis:       Convert adblock config files to privoxy format
