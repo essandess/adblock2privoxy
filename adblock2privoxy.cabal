@@ -1,5 +1,5 @@
 name:           adblock2privoxy
-version:        1.0
+version:        1.0.0
 cabal-version:  >= 1.6
 build-type:     Simple
 author:         Alexey Zubritsky
@@ -30,14 +30,14 @@ description:
                        Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument, 
                                   document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
                        Unsupported: collapse, background, xbl, ping and dtd
-homepage:       http://zubr.me/ab2p/
+homepage:       https://projects.zubr.me/wiki/adblock2privoxy
 category:       Web
 
 executable adblock2privoxy
   hs-source-dirs:  src
   main-is:         Main.hs
   build-depends:   
-                   base >= 4,
+                   base >= 4 && < 5,
                    parsec,
                    mtl,
                    containers,
@@ -64,3 +64,7 @@ executable adblock2privoxy
                    Statistics,
                    SourceInfo
 
+source-repository this
+                type:     git
+                location: ​http://projects.zubr.me/adblock2privoxy.git
+                tag:      1.0.0
