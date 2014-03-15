@@ -27,11 +27,11 @@ options =
      , Option ['p']     ["privoxyDir"]
          (ReqArg (\ f opts -> opts { _privoxyDir = f })
                  "PATH")
-         "privoxy config output path"
+         "privoxy config output path (required)"
      , Option ['w']     ["webDir"]
          (ReqArg (\ f opts -> opts { _webDir = f })
                  "PATH")
-         "css files output path"
+         "css files output path (optional, privoxyDir is used by default)"
      ]
 
 parseOptions :: [String] -> IO (Options, [String])

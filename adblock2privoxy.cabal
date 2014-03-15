@@ -6,12 +6,21 @@ author:         Alexey Zubritsky
 data-files:     
                 templates/ab2p.system.action, 
                 templates/ab2p.system.filter
+extra-source-files: README
 license:        GPL-3
-maintainer:     a@zubr.me
+maintainer:     Alexey Zubritsky <a@zubr.me>
 license-file:   LICENSE
 stability:      stable
 synopsis:       Convert adblock config files to privoxy format
 description:    
+                     AdBlock Plus browser plugin has great block list files provided by big community,
+                     but it is client software and cannot work on a server as proxy.
+                     .
+                     Privoxy proxy has good potential to block ads at server side, 
+                     but it experiences acute shortage of updated block lists.
+                     .
+                     This software converts adblock lists to privoxy config files format.   
+                     .
                      Almost all adblock features are supported including
                      - block/unblock requests (on privoxy)
                        all syntax features are supported except for regex templates matching host name
@@ -21,9 +30,8 @@ description:
                        Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument, 
                                   document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
                        Unsupported: collapse, background, xbl, ping and dtd
-                     .  
-                     Tested with privoxy version 3.0.21.
-                     Element blocking feature requires a webserver to work. See Nginx and Apache config examples provided.
+homepage:       http://zubr.me/ab2p/
+category:       Web
 
 executable adblock2privoxy
   hs-source-dirs:  src

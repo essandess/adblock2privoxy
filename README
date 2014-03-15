@@ -1,6 +1,13 @@
 Convert adblock config files to privoxy format
 
 --- Introduction ---
+AdBlock Plus browser plugin has great block list files provided by big community,
+but it is client software and cannot work on a server as proxy.
+
+Privoxy proxy has good potential to block ads at server side, 
+but it experiences acute shortage of updated block lists.
+
+This software converts adblock lists to privoxy config files format.   
 
 Almost all adblock features are supported including
 - block/unblock requests (on privoxy)
@@ -13,7 +20,7 @@ Almost all adblock features are supported including
   Unsupported: collapse, background, xbl, ping and dtd
   
 Tested with privoxy version 3.0.21.
-Element blocking feature requires a webserver to work. See Nginx and Apache config examples provided.
+Element blocking feature requires a webserver to serve CSS files. See Nginx and Apache config examples provided.
 
 --- Usage ---
 
@@ -24,34 +31,66 @@ adblock2privoxy [OPTION...] adblockFiles...
   
 Example: adblock2privoxy -p /etc/privoxy -w /var/www/privoxy easylist.txt advblock.txt my_custom.txt
 
---- Config examples ---
+--- How to apply results ---
 
-Privoxy config change: Add following lines at the end of config
+1) Install privoxy. Optionally setup it as transparent proxy
+2) Change privoxy config file: Add following lines
 
 actionsfile ab2p.system.action
 actionsfile ab2p.action
 filterfile ab2p.system.filter
 filterfile ab2p.filter
 
+3) Install nginx or apache webserver
+
 Nginx config example:
-server {
-        listen 80;
-        server_name privoxy.zubr.me; #ab2p css domain name
 
-        location ~ ^/[^/.]+\..+/ab2p.css$ {
-          # first reverse domain names order
-          rewrite ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css last;
-        }
+	server {
+	        listen 80;
+	        #ab2p css domain name (optional)
+	        server_name privoxy.zubr.me;
+	
+	        #root = webDir parameter value 
+	        root /var/www/privoxy; 
+	
+	        location ~ ^/[^/.]+\..+/ab2p.css$ {
+	          	# first reverse domain names order
+				rewrite ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css last;
+	        }
+	
+	        location ~ (^.*/+)[^/]+/+ab2p.css {
+	          	# then try to get CSS for current domain
+	          	# if it is unavailable - get CSS for parent domain
+	          	try_files $uri $1ab2p.css;
+	        } 
+	}
 
-        location ~ (^.*/+)[^/]+/+ab2p.css {
-          # then try to get CSS for current domain
-          # if it is unavailable - get CSS for parent domain
-          try_files $uri $1ab2p.css;
-        }
+Apache config example:
 
-        root /var/www/privoxy; #webDir
-}
+	<VirtualHost *:80>
+	        #ab2p css domain name (optional)
+	        ServerName www.example.com 
+	
+	        #root = webDir parameter value 
+	        DocumentRoot /var/www/privoxy
+	
+	
+	        RewriteEngine on
+	
+	        # first reverse domain names order
+	        RewriteRule ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css [N]
+	
+	        # then try to get CSS for current domain
+	        # if it is unavailable - get CSS for parent domain
+	        RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_FILENAME} !-f
+	        RewriteRule (^.*/+)[^/]+/+ab2p.css$ $1ab2p.css [N]
+	</VirtualHost>
 
-Apache config example: TBD
+4) Download adblock config files. Some download locations
+EasyList: https://easylist.adblockplus.org/en/
+Russian AD list: https://code.google.com/p/ruadlist/
 
+5) Run adblock2privoxy providing privoxy dir, web dir and adblock input files
+6) Restart privoxy and apache to load updated configs
 
+ 
