@@ -1,0 +1,57 @@
+Convert adblock config files to privoxy format
+
+--- Introduction ---
+
+Almost all adblock features are supported including
+- block/unblock requests (on privoxy)
+  all syntax features are supported except for regex templates matching host name
+- hide/unhide page elements (via CSS)
+  all syntax features are supported
+- all block request options except for outdated ones:
+  Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument, 
+             document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
+  Unsupported: collapse, background, xbl, ping and dtd
+  
+Tested with privoxy version 3.0.21.
+Element blocking feature requires a webserver to work. See Nginx and Apache config examples provided.
+
+--- Usage ---
+
+adblock2privoxy [OPTION...] adblockFiles...
+  -V       --version          show version number
+  -p PATH  --privoxyDir=PATH  privoxy config output path (required)
+  -w PATH  --webDir=PATH      css files output path (optional, privoxyDir is used by default)
+  
+Example: adblock2privoxy -p /etc/privoxy -w /var/www/privoxy easylist.txt advblock.txt my_custom.txt
+
+--- Config examples ---
+
+Privoxy config change: Add following lines at the end of config
+
+actionsfile ab2p.system.action
+actionsfile ab2p.action
+filterfile ab2p.system.filter
+filterfile ab2p.filter
+
+Nginx config example:
+server {
+        listen 80;
+        server_name privoxy.zubr.me; #ab2p css domain name
+
+        location ~ ^/[^/.]+\..+/ab2p.css$ {
+          # first reverse domain names order
+          rewrite ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css last;
+        }
+
+        location ~ (^.*/+)[^/]+/+ab2p.css {
+          # then try to get CSS for current domain
+          # if it is unavailable - get CSS for parent domain
+          try_files $uri $1ab2p.css;
+        }
+
+        root /var/www/privoxy; #webDir
+}
+
+Apache config example: TBD
+
+
