@@ -11,6 +11,26 @@ import Data.List
 import Data.Maybe
 import Control.Monad.State
 
+---------------------------------------------------------------------------------------------
+------------------------- parsec ext usage samples ------------------------------------------
+---------------------------------------------------------------------------------------------
+
+type ExampleCase = ([String], String, String)
+
+parsersChain :: [StringStateParser ExampleCase]
+parsersChain = square3 prefix mid suffix
+        where -- all parsers except for last one should consume some input and give some output
+            prefix = manyCases ((:[]) <$> (string "ab" <|> string "zz"))
+            mid =    many1Cases $ (:[]) <$> letter            -- list of letters
+            suffix = many1Cases $ try $ many1 alphaNum  
+            
+
+testParsecExt :: Either ParseError [([String], String, String)]
+testParsecExt =  parse (cases parsersChain <* string "$$") "x" "abebz12$$"
+
+testParseMorse :: Either ParseError [String]
+testParseMorse = parseMorse "......-...-..---"
+
 --------------------------------------------------------------------------------
 --- Morse chars parsing: parse "......-...-..---" in all possible ways ---------
 --------------------------------------------------------------------------------
@@ -94,10 +114,10 @@ morseParser pos = do     acc' <- get
                   
 
 morseParsers :: [StringStateParser (ZipListM String)]
-morseParsers = (repeat morseParser) <*> [0..]
+morseParsers = repeat morseParser <*> [0 ..]
 
 parseMorse :: String -> Either ParseError [String]
-parseMorse s = fmap (filter $ isPrefixOf "HELL") $ (fmap.fmap) postProcess $ parseMorseRaw "x" s
+parseMorse s = (fmap.fmap) postProcess $ parseMorseRaw "x" s
             where 
             parseMorseRaw =  parse (cases $ morseParsers) 
             postProcess = decodeMorse.toLists 

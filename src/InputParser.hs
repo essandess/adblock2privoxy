@@ -20,8 +20,7 @@ import Data.Char
 import Data.Monoid
 import Control.Monad
 import Text.Parsec.Permutation
-import System.FilePath.Posix
-import Utils
+import System.FilePath
  
 --------------------------------------------------------------------------
 ---------------------------- data model  ---------------------------------

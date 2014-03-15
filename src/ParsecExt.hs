@@ -1,7 +1,5 @@
 {-# LANGUAGE RankNTypes, ScopedTypeVariables, FlexibleInstances #-}
 module ParsecExt (
-    testParsecExt,
-    testParseMorse,
     CasesParser,
     StateParser,
     StringStateParser,
@@ -18,32 +16,7 @@ import Control.Monad.Trans
 import Control.Monad.RWS
 import Control.Monad.State
 import Data.Maybe
-import  {-# SOURCE #-} ParserExtTests 
         
----------------------------------------------------------------------------------------------
-------------------------- usage samples ------------------------------------------------------
----------------------------------------------------------------------------------------------
-
-type ExampleCase = ([String], String, String)
-
-parsersChain :: [StringStateParser ExampleCase]
-parsersChain = square3 prefix mid suffix
-        where -- all parsers except for last one should consume some input and give some output
-            prefix = manyCases ((:[]) <$> (string "ab" <|> string "zz"))
-            mid =    many1Cases $ (:[]) <$> letter            -- list of letters
-            suffix = many1Cases $ try $ many1 alphaNum  
-            
-
-testParsecExt :: Either ParseError [([String], String, String)]
-testParsecExt =  parse (cases parsersChain <* string "$$") "x" "abebz12$$"
-
-testParseMorse :: Either ParseError [String]
-testParseMorse = parseMorse "......-...-..---"
-
----------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------
----------------------------------------------------------------------------------------------
-
 -- parser should consume some input to prevent infinite loop
 manyCases :: (Monoid a, Monoid st) => Parser a -> StateParser st a
 manyCases p = do    acc <- get

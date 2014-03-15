@@ -1,3 +1,7 @@
+ошибки:
+http://docs.angularjs.org/api/ng.$http
+speedtest.net
+
 еще:
 поделить цсс на части, чтоб хром ел
 third-party работает не так, поддомены - разрешить!

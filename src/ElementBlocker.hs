@@ -9,12 +9,11 @@ import qualified Data.Map as Map
 import Data.Maybe
 import Utils
 import System.IO hiding (hGetContents)
-import System.FilePath.Posix
+import System.FilePath
 import Data.List 
 import System.Directory
 import qualified Templates 
 import Control.Monad 
-import Debug.Trace (traceShow)
   
 
 type BlockedRulesTree = DomainTree [Pattern] 
@@ -37,9 +36,8 @@ elemBlock path info = writeElemBlock . elemBlockData
         let entry = path </> entry'
         in do 
            isDir <- doesDirectoryExist entry
-           case isDir of
-                True -> when (head entry' /= '.') $ removeDirectoryRecursive entry    
-                False -> when (takeExtension entry == ".css") $ removeFile entry             
+           if isDir then when (head entry' /= '.') $ removeDirectoryRecursive entry    
+                    else when (takeExtension entry == ".css") $ removeFile entry             
     writeBlockTree :: String -> String -> BlockedRulesTree -> IO ()
     writeBlockTree nodePath debugNodePath (Node name patterns children) =
         do
@@ -68,7 +66,7 @@ elemBlock path info = writeElemBlock . elemBlockData
     writeCssFile filename content = 
          do outFile <- openFile filename WriteMode
             hPutStrLn outFile "/*"
-            _ <- mapM (hPutStrLn outFile) $ info
+            _ <- mapM (hPutStrLn outFile) info
             hPutStrLn outFile "*/"
             hPutStrLn outFile content
             hClose outFile 

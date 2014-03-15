@@ -8,22 +8,10 @@ import Statistics
 import Control.Applicative hiding (many)
 import SourceInfo
 import System.Console.GetOpt
-import Data.Maybe 
 import System.Environment
 import Control.Monad
-
-f1, f2, f3, f4, f5, outDir, baseDir :: String
-baseDir = "/home/alexey/Projects/AdBlock2Privoxy/test-data/"
-f1 = baseDir ++ "easylist.txt"
-f2 = baseDir ++ "advblock.txt" -- Ru Ad 
-f3 = baseDir ++ "bitblock.txt" -- Ru trash blocks includes fanboy-annoyance
-f4 = baseDir ++ "easyprivacy.txt"
-f5 = baseDir ++ "my.txt"
-outDir = "/home/alexey/test/ab"
---filenames :: [String]
---filenames = [f1, f2, f3, f4, f5]
---filenames = ["/home/alexey/Projects/adblock2privoxy/test-data/testData"]
-
+import Templates (writeTemplateFiles)
+import Data.Time.Clock (getCurrentTime)
 
 data Options = Options
      { _showVersion :: Bool
@@ -38,12 +26,12 @@ options =
          "show version number"
      , Option ['p']     ["privoxyDir"]
          (ReqArg (\ f opts -> opts { _privoxyDir = f })
-                 "FILE")
-         "output FILE"
+                 "PATH")
+         "privoxy config output path"
      , Option ['w']     ["webDir"]
          (ReqArg (\ f opts -> opts { _webDir = f })
-                 "FILE")
-         "input FILE"
+                 "PATH")
+         "css files output path"
      ]
 
 parseOptions :: [String] -> IO (Options, [String])
@@ -57,7 +45,7 @@ parseOptions argv =
       (_,_,errs) -> writeError $ concat errs
   where 
         writeError msg = ioError $ userError $ msg ++ usageInfo header options
-        header = "Usage: adblock2privoxy [OPTION...] files..."
+        header = "Usage: adblock2privoxy [OPTION...] adblockFiles..."
 
 
 processFiles :: String -> String -> [String] -> IO [()]
@@ -70,12 +58,14 @@ processFiles privoxyDir webDir filenames = do
                 Right parsed -> return (parsed, extractInfo parsed, inputFile)
                 Left msg -> return ([], NoInfo, inputFile) <$ putStrLn $ show msg
                     
-        (parsed, sourceInfo, handlers) <- unzip3 <$> mapM parseFile filenames   
+        (parsed, sourceInfo, handlers) <- unzip3 <$> mapM parseFile filenames
+        showInfo' <- showInfo <$> getCurrentTime    
         let parsed' = concat parsed 
-            info    = (sourceInfo >>= showInfo) ++ ["------- end ------\n"]               
+            info    = (sourceInfo >>= showInfo') ++ ["------- end ------\n"]               
         stat privoxyDir info parsed'
         elemBlock webDir info parsed'
         urlBlock privoxyDir info parsed'
+        writeTemplateFiles privoxyDir
         sequence $ hClose <$> handlers
         
 main::IO()

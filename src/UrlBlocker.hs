@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import Data.String.Utils (split)
 import Data.Maybe   
 import System.IO  
-import System.FilePath.Posix
+import System.FilePath
 import PatternConverter          
 
 data TaggerType = Client | Server

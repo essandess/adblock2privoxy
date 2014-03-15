@@ -2,7 +2,9 @@
 
 {+set-image-blocker{blank} \
  +filter{ab2p-elemhide-filter} \
- +client-header-tagger{ab2p-elemhide-check-debug}}
+ +client-header-tagger{ab2p-elemhide-check-debug} \
+ +client-header-tagger{ab2p-handle-as-image-c} \
+ +server-header-tagger{ab2p-handle-as-image-s}}
 /
 
 {-filter{ab2p-elemhide-filter} \
@@ -23,3 +25,8 @@ TAG:^ab2p-unblock-d$
 
 {-block}
 TAG:^ab2p-unblock-s$
+
+#workaround for gzip handling privoxy bugs
+{ +prevent-compression }
+ *.yahoo.com
+ *.amazon.com

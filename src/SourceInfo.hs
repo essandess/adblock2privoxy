@@ -15,24 +15,27 @@ import Data.Time.Format
 
 
 data SourceInfo = SourceInfo { _title, _filename, _license, _homepage :: String, 
-                               _lastUpdated :: UTCTime, _expires, _version :: Int } | NoInfo
+                               _lastUpdated :: UTCTime, _expires, _version :: Integer } | NoInfo
 
 emptySourceInfo :: SourceInfo
 emptySourceInfo = SourceInfo "" "" "" "" (UTCTime (ModifiedJulianDay 0) (secondsToDiffTime 0) ) 72 0
 
-showInfo :: SourceInfo -> [String] 
-showInfo NoInfo = ["----- a source skipped -----"]
-showInfo sourceInfo@(SourceInfo _ filename _ _ lastUpdated expires _) = 
+showInfo :: UTCTime -> SourceInfo -> [String] 
+showInfo _ NoInfo = ["----- a source skipped -----"]
+showInfo now sourceInfo@(SourceInfo _ filename _ _ lastUpdated expires _) = 
                     [concat ["----- source -----"]]
                     ++ optionalLine "Title: " _title
                     ++ [concat ["Filename: ", filename],
                     concat ["Last modified: ", formatTime defaultTimeLocale "%d %b %Y %H:%M %Z" lastUpdated],
-                    concat ["Expires: ", show expires, " hours"]] 
+                    concat ["Expires: ", show expires, " hours", expired]] 
                     ++ optionalLine "Version: " _version
                     ++ optionalLine "License: " _license
                     ++ optionalLine "Homepage: " _homepage
-    where optionalLine caption getter | getter sourceInfo == getter emptySourceInfo = []
-                                      | otherwise       = [concat [caption, show $ getter sourceInfo]] 
+    where 
+    expired | (diffUTCTime now lastUpdated) > (fromInteger $ expires * 60 * 60) = " (expired)"
+                                | otherwise = []
+    optionalLine caption getter | getter sourceInfo == getter emptySourceInfo = []
+                                | otherwise = [concat [caption, show $ getter sourceInfo]] 
 
 extractInfo :: [Line] -> SourceInfo
 extractInfo lns@(Line RecordSource{_position = pos} _:_) 

@@ -2,4 +2,7 @@
 se7en.ru##div.sign > a[target="_blank"]
 |r.e1.ru
 ||yahoo.com$image,popup
+@@/tracker.php?$document
+@@||sourceforge.net/tracker/$document
+||adlift.ru/ 
 

@@ -1,8 +1,29 @@
 name:           adblock2privoxy
 version:        1.0
-cabal-version:  >= 1.2
+cabal-version:  >= 1.6
 build-type:     Simple
-author:         alexey
+author:         Alexey Zubritsky
+data-files:     
+                templates/ab2p.system.action, 
+                templates/ab2p.system.filter
+license:        GPL-3
+maintainer:     a@zubr.me
+license-file:   LICENSE
+stability:      stable
+synopsis:       Convert adblock config files to privoxy format
+description:    
+                     Almost all adblock features are supported including
+                     - block/unblock requests (on privoxy)
+                       all syntax features are supported except for regex templates matching host name
+                     - hide/unhide page elements (via CSS)
+                       all syntax features are supported
+                     - all block request options except for outdated ones:
+                       Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument, 
+                                  document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
+                       Unsupported: collapse, background, xbl, ping and dtd
+                     .  
+                     Tested with privoxy version 3.0.21.
+                     Element blocking feature requires a webserver to work. See Nginx and Apache config examples provided.
 
 executable adblock2privoxy
   hs-source-dirs:  src
@@ -23,7 +44,6 @@ executable adblock2privoxy
   other-modules:   
                    InputParser,
                    ParsecExt,
-                   Foo,
                    Utils,
                    ParserExtTests,
                    ElementBlocker,

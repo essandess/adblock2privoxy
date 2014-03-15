@@ -1,5 +1,8 @@
 module Templates where
 import  {-# SOURCE #-}  UrlBlocker
+import Paths_adblock2privoxy
+import System.Directory (copyFile)
+import System.FilePath ((</>))
 
 blockCss, ab2pPrefix, actionsFilePrefix, filtersFilePrefix :: String
 blockCss = "{display:none!important;visibility:hidden!important}"
@@ -10,9 +13,7 @@ filtersFilePrefix = "#AbBlock generated filters -- don't edit --"
 terminalActionSwitch :: Bool -> BlockMethod -> String
 terminalActionSwitch True Request = 
  "+block{ adblock rules } \\\n\
- \+server-header-tagger{ab2p-block-s} \\\n\
- \+client-header-tagger{ab2p-handle-as-image-c} \\\n\ 
- \+server-header-tagger{ab2p-handle-as-image-s}"
+ \+server-header-tagger{ab2p-block-s}"
 terminalActionSwitch False Request = 
  "-block \\\n\
  \-server-header-tagger{ab2p-block-s} \\\n\
@@ -26,4 +27,12 @@ terminalActionSwitch True Xpopup = "+filter{ab2p-popup-filter}"
 terminalActionSwitch False Xpopup = "-filter{ab2p-popup-filter}" 
 terminalActionSwitch True Dnt = "+add-header{DNT: 1}"
 terminalActionSwitch _ _ = "" 
- 
+
+writeTemplateFiles :: String -> IO ()
+writeTemplateFiles outDir = do
+        copySystem "ab2p.system.action"
+        copySystem "ab2p.system.filter"
+        where 
+        copySystem file = do
+                dataDir <- getDataDir
+                copyFile (dataDir  </> "templates" </> file) (outDir </> file)

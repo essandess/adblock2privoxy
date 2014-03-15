@@ -7,9 +7,6 @@
 !||graphics.pop6.com/javascript/$script,third-party,domain=~adultfriendfinder.com,~adultfriendfinder.co.uk
 !||adm.fwmrm.net/p/msnbc_live$object-subrequest,third-party,domain=~msnbc.msn.com,~www.nbcnews.com
 !/mydirtyhobby$domain=mydirtyhobby.com,mydirtyhobby.de
-yandex.ru$third-party
-se7en.ru##div.sign > a[target="_blank"]
-|r.e1.ru
-||yahoo.com$image,popup
-||some.test*net
-super.us$popup,~popup,third-party
+://counter.
+@@/tracker.php?$document
+||opa.na$document
