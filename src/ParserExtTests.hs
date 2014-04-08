@@ -1,5 +1,6 @@
 module ParserExtTests (
-parseMorse,
+testParsecExt,
+testParseMorse,
 encodeMorse
 ) where
 import Utils
@@ -102,15 +103,13 @@ morseStepParser (step:steps') = string step <|> morseStepParser steps'
 
 morseParser :: Int -> StringStateParser (ZipListM String)
 morseParser pos = do     acc' <- get
-                         let acc = case acc' of
-                                      Nothing -> ""
-                                      Just val -> val
+                         let acc = fromMaybe "" acc'
                              candidates = filter (\x -> isPrefixOf acc x && acc /= x) morseCharCodes
                              steps = drop (length acc) <$> findMorseSteps acc candidates
                              parser = morseStepParser steps    
                          res <- lift parser
                          put (Just $ acc ++ res)
-                         return (zipListM $ (replicate pos "") ++ (res : repeat ""))
+                         return (zipListM $ replicate pos "" ++ (res : repeat ""))
                   
 
 morseParsers :: [StringStateParser (ZipListM String)]
@@ -119,7 +118,7 @@ morseParsers = repeat morseParser <*> [0 ..]
 parseMorse :: String -> Either ParseError [String]
 parseMorse s = (fmap.fmap) postProcess $ parseMorseRaw "x" s
             where 
-            parseMorseRaw =  parse (cases $ morseParsers) 
+            parseMorseRaw =  parse (cases morseParsers) 
             postProcess = decodeMorse.toLists 
-            toLists = (takeWhile $ not.null) . getZipListM 
+            toLists = takeWhile (not . null) . getZipListM 
             

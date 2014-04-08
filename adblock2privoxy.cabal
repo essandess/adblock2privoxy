@@ -47,7 +47,9 @@ executable adblock2privoxy
                    parsec-permutation,
                    time >=1.4.0 && <1.5,
                    old-locale >=1.0.0 && <1.1,
-                   strict >=0.3.2 && <0.4
+                   strict >=0.3.2 && <0.4,
+                   HTTP >=4000.2.8 && <4000.3,
+                   network >=2.4.2 && <2.5
   ghc-options:     -Wall
   other-modules:   
                    InputParser,

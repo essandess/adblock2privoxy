@@ -1,31 +1,19 @@
-module Statistics where
+{-# LANGUAGE OverloadedStrings #-}
+module Statistics (
+        collectStat
+)where
 import qualified Data.Map as Map
 import InputParser
 import Data.Maybe 
-import System.IO
-import System.FilePath
-import Control.Applicative ((<$>))
+import Control.Applicative 
 import Control.Monad.State
 
 type Stat = Map.Map String Int 
 
-stat :: String -> [String] -> [Line] -> IO ()
-stat path info lns = 
-    let result = collectStat lns 
-        filename = path </> "ab2p.stat"
-        resultLine (name, value) = concat [name, ": ", show value] 
-        errorLine (Line position (Error text)) 
-            = [concat ["ERROR: ", recordSourceText position, " - ", text]]
-        errorLine _ = []
-    in do  
-        outFile <- openFile filename WriteMode
-        _ <- mapM (hPutStrLn outFile) info
-        _ <- sequence $ hPutStrLn outFile . resultLine <$> Map.toAscList result
-        _ <- sequence $ hPutStrLn outFile <$> (lns >>= errorLine)
-        hClose outFile
-
-collectStat :: [Line] -> Stat
-collectStat = foldr getStat Map.empty
+collectStat :: [Line] -> [String]
+collectStat = liftA resultLine . Map.toAscList . foldr getStat Map.empty
+        where
+        resultLine (name, value) = concat [name, ": ", show value]
 
 increment :: String -> Stat-> Stat
 increment key = Map.insertWith (+) key 1
