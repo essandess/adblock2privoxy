@@ -1,8 +1,16 @@
-
 1.2.1
-	    *  
+	    * Documentation
 
 1.1.0
+        * Tasks support to update privoxy config from same sources
+        * HTTP(s) supported to get adblock files
+        * Redirect comment support
+        * Sources expiration check 
 
 1.0.0
-        *  
+        * First public version
+        * Supports filenames in command-line
+        * Page elements blocking
+        * URLs blocking
+        * Popups blocking
+        * Adblock options: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,document, elemhide, other, popup, third-party, domain=..., match-case, donottrack    
