@@ -8,22 +8,26 @@ import Control.Applicative hiding (many)
 import SourceInfo
 import System.Console.GetOpt
 import System.Environment
-import Templates (writeTemplateFiles)
-import Data.Time.Clock (getCurrentTime)
-import Network.HTTP
+import Templates
+import Data.Time.Clock 
+import Network.HTTP.Conduit
 import Network.URI
-import Utils
+import Data.Text.Lazy.Encoding
+import Data.Text.Lazy (unpack)
+import Network.Socket
+import System.FilePath
 
 data Options = Options
      { _showVersion :: Bool
      , _privoxyDir  :: FilePath
      , _webDir      :: FilePath
      , _taskFile    :: FilePath
+     , _forced    :: Bool
      } deriving Show
 
 options :: [OptDescr (Options -> Options)]
 options =
-     [ Option "V" ["version"]
+     [ Option "v" ["version"]
          (NoArg (\ opts -> opts { _showVersion = True }))
          "show version number"
      , Option "p"   ["privoxyDir"]
@@ -38,17 +42,23 @@ options =
          (ReqArg (\ f opts -> opts { _taskFile = f })
                  "PATH")
          "path to task file containing urls to process"
+     , Option "f" ["forced"]
+         (NoArg (\ opts -> opts { _forced = True }))
+         "run even if no sources are expired"
      ]
 
 parseOptions :: [String] -> IO (Options, [String])
 parseOptions argv =
    case getOpt Permute options argv of
       (opts,nonOpts,[]  ) -> 
-                case foldl (flip id) (Options False "" "" "") opts of
-                        Options False "" _ _ -> writeError "Privoxy dir is not specified.\n"
-                        opts'@(Options _ privoxyDir "" _) -> return (opts'{_webDir = privoxyDir}, nonOpts)
-                        opts' -> return (opts', nonOpts)
+                case foldl (flip id) (Options False "" "" "" False) opts of
+                        Options False "" _ _ _ -> writeError "Privoxy dir is not specified.\n"
+                        opts' -> return (setDefaults opts', nonOpts)
       (_,_,errs) -> writeError $ concat errs
+   where
+        setDefaults opts@(Options _ privoxyDir "" _ _) = setDefaults opts{ _webDir = privoxyDir }
+        setDefaults opts@(Options _ privoxyDir _ "" _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
+        setDefaults opts = opts  
   
 writeError :: String -> IO a
 writeError msg = ioError $ userError $ msg ++ usageInfo header options
@@ -56,43 +66,51 @@ writeError msg = ioError $ userError $ msg ++ usageInfo header options
         header = "Usage: adblock2privoxy [OPTION...] [URL...]"
 
 getResponse :: String -> IO String
-getResponse url = do
-        response <- simpleHTTP (getRequest url)
-        getResponseBody response
+getResponse url = withSocketsDo $ unpack . decodeUtf8 <$> simpleHttp url
 
-processSources :: String -> String -> [SourceInfo]-> IO ()
-processSources privoxyDir webDir sources = do 
+processSources :: String -> String -> String -> [SourceInfo]-> IO ()
+processSources privoxyDir webDir taskFile sources = do 
         (parsed, sourceInfo) <- unzip <$> mapM parseSource sources   
         let parsed' = concat parsed 
-        infoText <- showInfos <$> getCurrentTime $> sourceInfo               
-        writeTask privoxyDir infoText parsed'
+            infoText = showInfos  sourceInfo               
+        writeTask taskFile infoText parsed'
         elemBlock webDir infoText parsed'
         urlBlock privoxyDir infoText parsed'
         writeTemplateFiles privoxyDir
         where 
         parseSource sourceInfo = do
-                            let 
-                                url = _url sourceInfo
-                                loader = if isURI url then getResponse else readFile
-                            putStrLn $ "parse " ++ url
-                            text <- loader url
-                            now <- getCurrentTime
-                            case parse adblockFile url text of
-                                Right parsed -> return (parsed, updateInfo now parsed sourceInfo)
-                                Left msg -> return ([], sourceInfo) <$ putStrLn $ show msg
+            let 
+                url = _url sourceInfo
+                loader = if isURI url then getResponse else readFile
+            putStrLn $ "parse " ++ url
+            text <- loader url
+            now <- getCurrentTime
+            case parse adblockFile url text of
+                Right parsed -> 
+                        let sourceInfo' = updateInfo now parsed sourceInfo 
+                            url' = _url sourceInfo'
+                        in if url == url'     
+                           then return (parsed, sourceInfo')
+                           else parseSource sourceInfo'
+                Left msg -> return ([], sourceInfo) <$ putStrLn $ show msg
         
 main::IO()
-main = do 
+main =  do 
+        now <- getCurrentTime
         args <- getArgs
-        (opts, urls) <- parseOptions args
+        (Options showVersion privoxyDir webDir taskFile forced, urls) <- parseOptions args
         let acton
-                | _showVersion opts = putStrLn "adblock2privoxy version 1.0"
+                | showVersion = putStrLn "adblock2privoxy version 1.0"
                 | not . null $ urls 
-                   =    processSources (_privoxyDir opts) (_webDir opts) (makeInfo <$> urls)
-                | not . null $ _taskFile opts 
-                   = do task <- readTask . _taskFile $ opts
-                        processSources (_privoxyDir opts) (_webDir opts) (logInfo task)
+                   =    processSources privoxyDir webDir taskFile (makeInfo <$> urls)
+                | not . null $ taskFile 
+                   = do task <- readTask taskFile
+                        let sources = logInfo task                        
+                        if forced || or (infoExpired now <$> sources)                                
+                                then processSources privoxyDir webDir taskFile sources
+                                else putStrLn "all sources are up to date"
                 | otherwise = writeError "no input specified"
         acton
-        putStrLn "done"
+        now' <- getCurrentTime
+        putStrLn $ concat ["done in ", show $ diffUTCTime now' now, " seconds"]
 

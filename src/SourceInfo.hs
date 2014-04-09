@@ -4,7 +4,8 @@ SourceInfo(_url),
 showInfos,
 updateInfo,
 makeInfo,
-logInfo
+logInfo,
+infoExpired
 ) where
 import InputParser
 import Control.Monad.State
@@ -19,10 +20,10 @@ import Data.String.Utils (split)
 
 
 data SourceInfo = SourceInfo { _title, _url, _license, _homepage :: String, 
-                               _lastUpdated :: UTCTime, _expires, _version :: Integer }
+                               _lastUpdated :: UTCTime, _expires, _version :: Integer, _expired :: Bool }
 
 emptySourceInfo :: SourceInfo
-emptySourceInfo = SourceInfo "" "" "" "" (UTCTime (ModifiedJulianDay 0) (secondsToDiffTime 0) ) 72 0
+emptySourceInfo = SourceInfo "" "" "" "" (UTCTime (ModifiedJulianDay 0) (secondsToDiffTime 0) ) 72 0 True
 
 separator :: String
 separator = "----- source -----"
@@ -30,29 +31,31 @@ separator = "----- source -----"
 endMark :: String
 endMark = "------- end ------"
 
-showInfos :: UTCTime -> [SourceInfo] -> [String] 
-showInfos now sourceInfos = (sourceInfos >>= showInfo now) ++ [endMark ++ "\n"]
+showInfos :: [SourceInfo] -> [String] 
+showInfos sourceInfos = (sourceInfos >>= showInfo) ++ [endMark ++ "\n"]
 
-showInfo :: UTCTime -> SourceInfo -> [String] 
-showInfo now sourceInfo@(SourceInfo _ url _ _ lastUpdated expires _) = 
+showInfo :: SourceInfo -> [String] 
+showInfo sourceInfo@(SourceInfo _ url _ _ lastUpdated expires _ expired) = 
         catMaybes [ Just separator,
                     optionalLine "Title: " _title,
                     Just $ concat ["Url: ", url],
                     Just $ concat ["Last modified: ", formatTime defaultTimeLocale "%d %b %Y %H:%M %Z" lastUpdated],
-                    Just $ concat ["Expires: ", show expires, " hours", expired], 
-                    optionalLine "Version: " _version,
+                    Just $ concat ["Expires: ", show expires, " hours", expiredMark], 
+                    optionalLine "Version: " $ show . _version,
                     optionalLine "License: " _license,
                     optionalLine "Homepage: " _homepage ]
     where 
-    expired | (diffUTCTime now lastUpdated) > (fromInteger $ expires * 60 * 60) = " (expired)"
-            | otherwise = ""
+    expiredMark | expired = " (expired)"
+                | otherwise = ""
     optionalLine caption getter | getter sourceInfo == getter emptySourceInfo = Nothing
-                                | otherwise = Just $ concat [caption, show $ getter sourceInfo] 
+                                | otherwise = Just $ concat [caption, getter sourceInfo] 
 
 updateInfo :: UTCTime -> [Line] -> SourceInfo -> SourceInfo
-updateInfo now lns initial
-    = execState (sequence $ parseInfo . lineComment <$> take 50 lns) initial'
-    where initial' = initial { _lastUpdated = now } 
+updateInfo now lns old
+    = updated { _expired = infoExpired now updated } 
+    where 
+    initial = old { _lastUpdated = now } 
+    updated = execState (sequence $ parseInfo . lineComment <$> take 50 lns) initial
     
 makeInfo :: String -> SourceInfo
 makeInfo url = emptySourceInfo { _url = url }
@@ -60,8 +63,12 @@ makeInfo url = emptySourceInfo { _url = url }
 logInfo :: [String] -> [SourceInfo]
 logInfo lns = chunkInfo <$> chunks
    where 
-   chunks = split [separator] . takeWhile (/= endMark) $ lns
+   chunks = filter (not.null) . split [separator] . takeWhile (/= endMark) $ lns
    chunkInfo chunk = execState (sequence $ parseInfo <$> chunk) emptySourceInfo
+
+infoExpired :: UTCTime -> SourceInfo -> Bool
+infoExpired now (SourceInfo _ _ _ _ lastUpdated expires _ _ ) = 
+        diffUTCTime now lastUpdated > (fromInteger $ expires * 60 * 60)
 
 lineComment :: Line -> String
 lineComment (Line _ (Comment text)) = text
@@ -70,7 +77,7 @@ lineComment _ = ""
 parseInfo :: String -> State SourceInfo ()
 parseInfo text = do
     info <- get
-    let urlParser = (\x -> info{_url = x}) <$> (string "Url: " *> many1 anyChar)
+    let urlParser = (\x -> info{_url = x}) <$> ((string "Url: " <|> string "Redirect: ") *> many1 anyChar)
         titleParser = (\x -> info{_title = x}) <$> (string "Title: " *> many1 anyChar)
         homepageParser = (\x -> info{_homepage = x}) <$> (string "Homepage: " *> many1 anyChar)
         lastUpdatedParser = (\x -> case x of 

@@ -14,6 +14,7 @@ import Data.List
 import System.Directory
 import qualified Templates 
 import Control.Monad 
+import Data.String.Utils (startswith)
   
 
 type BlockedRulesTree = DomainTree [Pattern] 
@@ -26,12 +27,13 @@ elemBlock path info = writeElemBlock . elemBlockData
     writeElemBlock (ElemBlockData flatPatterns rulesTree) = 
         do
            let debugPath = path </> "debug"
+               filteredInfo = filter ((||) <$> not . startswith "Url:" <*> startswith "Url: http") info
            createDirectoryIfMissing True path
            cont <- getDirectoryContents path
            _ <- sequence $ removeOld <$> cont 
            createDirectoryIfMissing True debugPath
            writeBlockTree path debugPath rulesTree 
-           writePatterns info (path </> "ab2p.common.css") (debugPath </> "ab2p.common.css") flatPatterns      
+           writePatterns filteredInfo (path </> "ab2p.common.css") (debugPath </> "ab2p.common.css") flatPatterns      
     removeOld entry' = 
         let entry = path </> entry'
         in do 

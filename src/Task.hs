@@ -3,16 +3,14 @@ writeTask,
 readTask
 ) where
 import System.IO
-import System.FilePath
 import InputParser
 import Statistics
 import Control.Applicative ((<$>))
 
 writeTask :: String -> [String] -> [Line] -> IO ()
-writeTask path info lns = 
+writeTask filename info lns = 
     let 
         statistics = collectStat lns
-        filename = path </> "ab2p.task"
         errorLine (Line position (Error text)) 
             = [concat ["ERROR: ", recordSourceText position, " - ", text]]
         errorLine _ = []
@@ -24,4 +22,7 @@ writeTask path info lns =
         hClose outFile
 
 readTask :: String -> IO [String]       
-readTask path = lines <$> readFile path
+readTask path = do 
+        result <- lines <$> readFile path
+        return $ length result `seq` result --read whole file to allow its overwriting
+
