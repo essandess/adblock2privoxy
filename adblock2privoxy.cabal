@@ -1,12 +1,14 @@
 name:           adblock2privoxy
-version:        1.0.0
+version:        1.2.0
 cabal-version:  >= 1.6
 build-type:     Simple
 author:         Alexey Zubritsky
 data-files:     
                 templates/ab2p.system.action, 
                 templates/ab2p.system.filter
-extra-source-files: README
+extra-source-files: 
+                README
+                changelog
 license:        GPL-3
 maintainer:     Alexey Zubritsky
 license-file:   LICENSE
@@ -70,4 +72,4 @@ executable adblock2privoxy
 source-repository this
                 type:     git
                 location: ​http://projects.zubr.me/adblock2privoxy.git
-                tag:      1.0.0
+                tag:      1.2.0
