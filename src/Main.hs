@@ -16,6 +16,8 @@ import Data.Text.Lazy.Encoding
 import Data.Text.Lazy (unpack)
 import Network.Socket
 import System.FilePath
+import Paths_adblock2privoxy (version)
+import Data.Version (showVersion)
 
 data Options = Options
      { _showVersion :: Bool
@@ -53,6 +55,7 @@ parseOptions argv =
       (opts,nonOpts,[]  ) -> 
                 case foldl (flip id) (Options False "" "" "" False) opts of
                         Options False "" _ _ _ -> writeError "Privoxy dir is not specified.\n"
+                        opts'@Options{_showVersion = True} -> return (opts', nonOpts)
                         opts' -> return (setDefaults opts', nonOpts)
       (_,_,errs) -> writeError $ concat errs
    where
@@ -98,9 +101,9 @@ main::IO()
 main =  do 
         now <- getCurrentTime
         args <- getArgs
-        (Options showVersion privoxyDir webDir taskFile forced, urls) <- parseOptions args
+        (Options printVersion privoxyDir webDir taskFile forced, urls) <- parseOptions args
         let acton
-                | showVersion = putStrLn "adblock2privoxy version 1.0"
+                | printVersion = putStrLn $ "adblock2privoxy version " ++ (showVersion version)
                 | not . null $ urls 
                    =    processSources privoxyDir webDir taskFile (makeInfo <$> urls)
                 | not . null $ taskFile 

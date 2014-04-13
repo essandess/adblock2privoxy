@@ -1,5 +1,5 @@
 name:           adblock2privoxy
-version:        1.2.3
+version:        1.2.4
 cabal-version:  >= 1.6
 build-type:     Simple
 author:         Alexey Zubritsky
@@ -79,4 +79,4 @@ executable adblock2privoxy
 source-repository this
                 type:     git
                 location: ​http://projects.zubr.me/adblock2privoxy.git
-                tag:      1.2.3
+                tag:      1.2.4
