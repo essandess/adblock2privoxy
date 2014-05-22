@@ -98,7 +98,7 @@ How to apply results
 
 3. Install nginx or apache webserver
 
-Nginx config example::
+   Nginx config example::
 
     server {
             listen 80;
@@ -121,7 +121,7 @@ Nginx config example::
     }
 
 
-Apache config example::
+   Apache config example::
 
     <VirtualHost *:80>
             #ab2p css domain name (optional)
