@@ -142,7 +142,7 @@ Apache config example::
             RewriteRule (^.*/+)[^/]+/+ab2p.css$ $1ab2p.css [N]
     </VirtualHost>
 
-4) Find out files to use. Some download locations
+4) Find out abdlock config files to use. Some download locations
 
   * EasyList - https://easylist.adblockplus.org/en/
   * Russian AD list - https://code.google.com/p/ruadlist/
