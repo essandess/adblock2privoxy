@@ -1,0 +1,11 @@
+[Adblock Plus 2.0]
+! Redirect: /home/alexey/Projects/adblock2privoxy/test-data/my1.txt
+! Version: 42
+
+se7en.ru##div.sign > a[target="_blank"]
+|r.e1.ru
+||yahoo.com$image,popup
+@@/tracker.php?$document
+@@||sourceforge.net/tracker/$document
+||adlift.ru/ 
+

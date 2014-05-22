@@ -10,10 +10,11 @@ extra-source-files:
                 README
                 changelog
 license:        GPL-3
-maintainer:     Alexey Zubritsky
+maintainer:     Alexey Zubritskiy <adblock2privoxy@zubr.me>
 license-file:   LICENSE
 stability:      stable
-synopsis:       Convert adblock config files to privoxy format
+synopsis:       
+                       Convert adblock config files to privoxy format
 description:    
                        AdBlock Plus browser plugin has great block list files provided by big community,
                        but it is client software and cannot work on a server as proxy.
