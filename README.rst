@@ -9,9 +9,8 @@ Synopsis
 
     adblock2privoxy [OPTION...] [URL...]
 
-
-Description
------------
+Objectives
+----------
 
 AdBlock Plus browser plugin has great block lists provided by big community,
 but it is client software and cannot work on a server as a proxy.
@@ -22,22 +21,23 @@ but it experiences acute shortage of updated block lists.
 This software converts adblock lists to privoxy config files format.   
 
 Almost all adblock features are supported including
-
 * block/unblock requests (on privoxy)
-
   * all syntax features are supported except for regex templates matching host name
-
 * hide/unhide page elements (via CSS)
-
   * all syntax features are supported
-
 * all block request options except for outdated ones:
-
   * Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
   * Unsupported: collapse, background, xbl, ping and dtd
   
 Tested with privoxy version 3.0.21.
 Element blocking feature requires a webserver to serve CSS files. See Nginx and Apache config examples provided.
+
+Description
+-----------
+
+Adblock files specified by [URL]... are converted to privoxy config files and auxiliarly elemHide CSS files. Local file names and http(s) addresses are accepted as URLs. 
+
+If no source URLs are specified, task file is used to determine sources: previously processed sources are processed again if any of them is expired. Nothing is done if all sources in the task file are up to date. 
 
 Options
 -------

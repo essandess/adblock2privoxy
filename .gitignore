@@ -9,4 +9,6 @@ SourceGraph/
 
 #distribution folders
 dist/
-distribution/packages
+distribution/packages/
+
+RemoteSystemsTempFiles/
