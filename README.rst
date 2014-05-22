@@ -21,11 +21,17 @@ but it experiences acute shortage of updated block lists.
 This software converts adblock lists to privoxy config files format.   
 
 Almost all adblock features are supported including
+
 * block/unblock requests (on privoxy)
+
   * all syntax features are supported except for regex templates matching host name
+
 * hide/unhide page elements (via CSS)
+
   * all syntax features are supported
+
 * all block request options except for outdated ones:
+
   * Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
   * Unsupported: collapse, background, xbl, ping and dtd
   
