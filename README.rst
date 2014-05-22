@@ -48,11 +48,16 @@ If no source URLs are specified, task file is used to determine sources: previou
 Options
 -------
 
-    -v, --version               show version number
-    -p PATH, --privoxyDir=PATH  privoxy config output path (required)
-    -w PATH, --webDir=PATH      css files output path (optional, privoxyDir is used by default)
-    -t PATH, --taskFile=PATH    path to task file containing urls to process
-    -f, --forced                run even if no sources are expired
+    -v, --version               
+        show version number
+    -p PATH, --privoxyDir=PATH  
+        privoxy config output path (required)
+    -w PATH, --webDir=PATH      
+        css files output path (optional, privoxyDir is used by default)
+    -t PATH, --taskFile=PATH    
+        path to task file containing urls to process
+    -f, --forced                
+        run even if no sources are expired
 
 Usage
 -----
