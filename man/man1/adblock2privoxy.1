@@ -1,0 +1,223 @@
+.TH "ADBLOCK2PRIVOXY" "1" "2014\-11\-30" "adblock2privoxy 1.2.4" "General Commands Manual"
+.SH ADBLOCK2PRIVOXY
+.PP
+\f[B]Convert adblock config files to privoxy format\f[]
+.PP
+Synopsis1 \-\-\-\-\-\-\-\-
+.RS
+.PP
+adblock2privoxy [OPTION...] [URL...]
+.RE
+.SS Objectives
+.PP
+AdBlock Plus browser plugin has great block lists provided by big
+community, but it is client software and cannot work on a server as a
+proxy.
+.PP
+Privoxy proxy has good potential to block ads at server side, but it
+experiences acute shortage of updated block lists.
+.PP
+This software converts adblock lists to privoxy config files format.
+.PP
+Almost all adblock features are supported including
+.IP \[bu] 2
+block/unblock requests (on privoxy)
+.RS 2
+.IP \[bu] 2
+all syntax features are supported except for regex templates matching
+host name
+.RE
+.IP \[bu] 2
+hide/unhide page elements (via CSS)
+.RS 2
+.IP \[bu] 2
+all syntax features are supported
+.RE
+.IP \[bu] 2
+all block request options except for outdated ones:
+.RS 2
+.IP \[bu] 2
+Supported: script, image, stylesheet, object, xmlhttprequest,
+object\-subrequest, subdocument,document, elemhide, other, popup,
+third\-party, domain=..., match\-case, donottrack
+.IP \[bu] 2
+Unsupported: collapse, background, xbl, ping and dtd
+.RE
+.PP
+Tested with privoxy version 3.0.21.
+Element blocking feature requires a webserver to serve CSS files.
+See Nginx and Apache config examples provided.
+.SS Description
+.PP
+Adblock files specified by [URL]...
+are converted to privoxy config files and auxiliarly elemHide CSS files.
+Local file names and http(s) addresses are accepted as URLs.
+.PP
+If no source URLs are specified, task file is used to determine sources:
+previously processed sources are processed again if any of them is
+expired.
+Nothing is done if all sources in the task file are up to date.
+.SS Options
+.RS
+.TP
+.B \-v, \-\-version
+show version number
+.RS
+.RE
+.TP
+.B \-p PATH, \-\-privoxyDir=PATH
+privoxy config output path (required)
+.RS
+.RE
+.TP
+.B \-w PATH, \-\-webDir=PATH
+css files output path (optional, privoxyDir is used by default)
+.RS
+.RE
+.TP
+.B \-t PATH, \-\-taskFile=PATH
+path to task file containing urls to process
+.RS
+.RE
+.TP
+.B \-f, \-\-forced
+run even if no sources are expired
+.RS
+.RE
+.RE
+.SS Usage
+.PP
+Example of first run:
+.IP
+.nf
+\f[C]
+adblock2privoxy\ \-p\ /etc/privoxy\ \-w\ /var/www/privoxy\ \-t\ my_ab2b.task\ https://easylist\-downloads.adblockplus.org/easylist.txt\ https://easylist\-downloads.adblockplus.org/advblock.txt\ my_custom.txt
+\f[]
+.fi
+.PP
+Example of subsequent runs:
+.IP
+.nf
+\f[C]
+adblock2privoxy\ \-p\ /etc/privoxy\ \-w\ /var/www/privoxy\ \-t\ my_ab2b.task
+\f[]
+.fi
+.PP
+The app generates following files
+.RS
+.IP \[bu] 2
+privoxyDir:
+.RS
+.IP \[bu] 2
+ab2p.system.action
+.IP \[bu] 2
+ab2p.action
+.IP \[bu] 2
+ab2p.system.filter
+.IP \[bu] 2
+ab2p.filter
+.RE
+.IP \[bu] 2
+webDir:
+.RS
+.IP \[bu] 2
+ab2p.common.css
+.IP \[bu] 2
+ab2p.css
+.IP \[bu] 2
+[lot of directories for first level domain names]
+.RE
+.IP \[bu] 2
+taskFile:
+.RE
+.RS
+.IP \[bu] 2
+special file containing execution details.
+It can be reused to update privoxy config from same sources.
+.RE
+.SS How to apply results
+.IP "1." 3
+Install privoxy.
+Optionally setup it as transparent proxy
+.IP "2." 3
+Change privoxy config file: Add following lines
+.RS 4
+.RS
+.PP
+actionsfile ab2p.system.action actionsfile ab2p.action filterfile
+ab2p.system.filter filterfile ab2p.filter
+.RE
+.RE
+.IP "3." 3
+Install nginx or apache webserver
+.RS 4
+.PP
+Nginx config example:
+.IP
+.nf
+\f[C]
+server\ {
+\ \ \ \ \ \ \ \ listen\ 80;
+\ \ \ \ \ \ \ \ #ab2p\ css\ domain\ name\ (optional)
+\ \ \ \ \ \ \ \ server_name\ privoxy.zubr.me;
+
+\ \ \ \ \ \ \ \ #root\ =\ webDir\ parameter\ value\ 
+\ \ \ \ \ \ \ \ root\ /var/www/privoxy;\ 
+
+\ \ \ \ \ \ \ \ location\ ~\ ^/[^/.]+\\..+/ab2p.css$\ {
+\ \ \ \ \ \ \ \ \ \ \	#\ first\ reverse\ domain\ names\ order
+\	\	\	rewrite\ ^/([^/]*?)\\.([^/.]+)(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?/ab2p.css$\ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css\ last;
+\ \ \ \ \ \ \ \ }
+
+\ \ \ \ \ \ \ \ location\ ~\ (^.*/+)[^/]+/+ab2p.css\ {
+\ \ \ \ \ \ \ \ \ \ \	#\ then\ try\ to\ get\ CSS\ for\ current\ domain
+\ \ \ \ \ \ \ \ \ \ \	#\ if\ it\ is\ unavailable\ \-\ get\ CSS\ for\ parent\ domain
+\ \ \ \ \ \ \ \ \ \ \	try_files\ $uri\ $1ab2p.css;
+\ \ \ \ \ \ \ \ }\ 
+}
+\f[]
+.fi
+.PP
+Apache config example:
+.IP
+.nf
+\f[C]
+<VirtualHost\ *:80>
+\ \ \ \ \ \ \ \ #ab2p\ css\ domain\ name\ (optional)
+\ \ \ \ \ \ \ \ ServerName\ www.example.com\ 
+
+\ \ \ \ \ \ \ \ #root\ =\ webDir\ parameter\ value\ 
+\ \ \ \ \ \ \ \ DocumentRoot\ /var/www/privoxy
+
+
+\ \ \ \ \ \ \ \ RewriteEngine\ on
+
+\ \ \ \ \ \ \ \ #\ first\ reverse\ domain\ names\ order
+\ \ \ \ \ \ \ \ RewriteRule\ ^/([^/]*?)\\.([^/.]+)(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?(?:\\.([^/.]+))?/ab2p.css$\ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css\ [N]
+
+\ \ \ \ \ \ \ \ #\ then\ try\ to\ get\ CSS\ for\ current\ domain
+\ \ \ \ \ \ \ \ #\ if\ it\ is\ unavailable\ \-\ get\ CSS\ for\ parent\ domain
+\ \ \ \ \ \ \ \ RewriteCond\ %{DOCUMENT_ROOT}/%{REQUEST_FILENAME}\ !\-f
+\ \ \ \ \ \ \ \ RewriteRule\ (^.*/+)[^/]+/+ab2p.css$\ $1ab2p.css\ [N]
+</VirtualHost>
+\f[]
+.fi
+.RE
+.IP "4)" 3
+Find out abdlock config files to use.
+Some download locations
+.RS
+.IP \[bu] 2
+EasyList (https://easylist.adblockplus.org/en/)
+.IP \[bu] 2
+Russian AD list (https://code.google.com/p/ruadlist/)
+.RE
+.IP "5)" 3
+Run adblock2privoxy providing privoxy dir, web dir and adblock input
+file urls
+.IP "6)" 3
+Restart privoxy and apache to load updated configs
+.PP
+Clone repository from <http://projects.zubr.me/adblock2privoxy.git>
+.SH AUTHORS
+Alexey Zubritsky <adblock2privoxy\@zubr.me>.

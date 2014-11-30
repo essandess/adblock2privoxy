@@ -149,8 +149,8 @@ How to apply results
 
 4) Find out abdlock config files to use. Some download locations
 
-  * EasyList - https://easylist.adblockplus.org/en/
-  * Russian AD list - https://code.google.com/p/ruadlist/
+  * `EasyList <https://easylist.adblockplus.org/en/>`_
+  * `Russian AD list <https://code.google.com/p/ruadlist/>`_
 
 5) Run adblock2privoxy providing privoxy dir, web dir and adblock input file urls
 
