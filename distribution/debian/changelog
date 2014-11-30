@@ -1,7 +1,0 @@
-adblock2privoxy (1.2.4-2) experimental; urgency=low
-
-  * Converted from .rpm format to .deb by alien version 8.90
-  
-  - Initial implementation
-
- -- Alexey <alexey@T1000>  Mon, 19 May 2014 13:12:29 +0700

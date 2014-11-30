@@ -1,5 +1,5 @@
 name:                adblock2privoxy
-version:             1.2.4
+version:             1.2.5
 cabal-version:       >= 1.6
 build-type:          Custom
 author:              Alexey Zubritsky <adblock2privoxy@zubr.me>
@@ -7,8 +7,9 @@ data-files:
                 templates/ab2p.system.action,
                 templates/ab2p.system.filter
 extra-source-files:  
-                README
+                README.rst
                 changelog
+                man/man1/adblock2privoxy.1
 license:             GPL-3
 maintainer:          Alexey Zubritskiy <adblock2privoxy@zubr.me>
 license-file:        LICENSE
