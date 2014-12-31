@@ -91,4 +91,4 @@ executable adblock2privoxy-distrib
 source-repository this
   type:      git
   location:  ​http://projects.zubr.me/adblock2privoxy.git
-  tag:       1.2.4
+  tag:       1.2.6
