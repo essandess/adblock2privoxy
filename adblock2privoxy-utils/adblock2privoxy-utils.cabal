@@ -1,0 +1,36 @@
+name:                adblock2privoxy-utils
+version:             1.0.0
+cabal-version:       >= 1.6
+build-type:          Simple
+author:              Alexey Zubritsky <adblock2privoxy@zubr.me>
+homepage:            https://projects.zubr.me/wiki/adblock2privoxy
+category:            Web
+synopsis:            Helper utilities and scripts for adblock2privoxy project
+description:         
+        * Creates config files for PRM packaging using values from cabal file
+        * Creates man help files from README 
+        .
+        This package is only needed to pubish new releases of adblock2privoxy in hackage
+        .
+        It is not needed for packaging and execution of adblock2privoxy
+
+
+executable adblock2privoxy-utils
+  hs-source-dirs:  src
+  main-is:         Main.hs
+  build-depends:   base >= 4 
+  ghc-options:     -Wall
+  build-depends:   
+                   base >= 4 && < 5,
+                   pandoc,
+                   Cabal >=1.6,
+                   pandoc-types >=1.12.3,
+                   filepath,
+                   directory,
+                   time,
+                   old-locale
+
+source-repository head
+  type:      git
+  location:  ​http://projects.zubr.me/adblock2privoxy.git
+  subdir:    adblock2privoxy-utils

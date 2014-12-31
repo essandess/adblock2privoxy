@@ -7,8 +7,4 @@ sandbox/
 # generated source graph
 SourceGraph/
 
-#distribution folders
-dist/
-distribution/packages/
-
 RemoteSystemsTempFiles/

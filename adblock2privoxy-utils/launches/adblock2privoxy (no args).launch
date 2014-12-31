@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="net.sf.eclipsefp.haskell.debug.core.internal.launch.ExecutableHaskellLaunchDelegate">
+<stringAttribute key="PROJECT_NAME" value="adblock2privoxy"/>
+<stringAttribute key="STANZA" value="adblock2privoxy"/>
+<stringAttribute key="WORKING_DIRECTORY" value="/mnt/data/Projects/adblock2privoxy/adblock2privoxy"/>
+<listAttribute key="org.eclipse.debug.ui.favoriteGroups">
+<listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
+</listAttribute>
+</launchConfiguration>
