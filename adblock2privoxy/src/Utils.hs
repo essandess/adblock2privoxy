@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Utils (
 Struct2 (..),
 Struct3 (..),

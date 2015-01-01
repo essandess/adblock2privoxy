@@ -69,7 +69,9 @@ writeError msg = ioError $ userError $ msg ++ usageInfo header options
         header = "Usage: adblock2privoxy [OPTION...] [URL...]"
 
 getResponse :: String -> IO String
-getResponse url = withSocketsDo $ unpack . decodeUtf8 <$> simpleHttp url
+getResponse url = do
+        putStrLn $ "load " ++ url ++ "..."
+        withSocketsDo $ unpack . decodeUtf8 <$> simpleHttp url
 
 processSources :: String -> String -> String -> [SourceInfo]-> IO ()
 processSources privoxyDir webDir taskFile sources = do 
@@ -80,12 +82,13 @@ processSources privoxyDir webDir taskFile sources = do
         elemBlock webDir infoText parsed'
         urlBlock privoxyDir infoText parsed'
         writeTemplateFiles privoxyDir
+        putStrLn $ "Run 'adblock2privoxy " ++ taskFile ++ "' every 1-2 days to process data updates"
         where 
         parseSource sourceInfo = do
             let 
                 url = _url sourceInfo
                 loader = if isURI url then getResponse else readFile
-            putStrLn $ "parse " ++ url
+            putStrLn $ "process " ++ url
             text <- loader url
             now <- getCurrentTime
             case parse adblockFile url text of
@@ -103,7 +106,7 @@ main =  do
         args <- getArgs
         (Options printVersion privoxyDir webDir taskFile forced, urls) <- parseOptions args
         let acton
-                | printVersion = putStrLn $ "adblock2privoxy version " ++ (showVersion version)
+                | printVersion = putStrLn $ "adblock2privoxy version " ++ showVersion version
                 | not . null $ urls 
                    =    processSources privoxyDir webDir taskFile (makeInfo <$> urls)
                 | not . null $ taskFile 

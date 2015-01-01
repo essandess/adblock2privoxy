@@ -1,4 +1,3 @@
-{-# LANGUAGE RankNTypes, ScopedTypeVariables, FlexibleInstances #-}
 module ParsecExt (
     CasesParser,
     StateParser,
@@ -70,6 +69,6 @@ casesParser acc parsers@(parser:next) = do
                             lift (put Nothing)
                             (mapRWST.mapStateT) lookAhead $ casesParser acc' next
                             lift (put st)
-                when (not.null $ input) $ casesParser acc' parsers                                      
+                unless (null input) $ casesParser acc' parsers                                      
                                         
 ------------------------------------------------------------------------------------------------

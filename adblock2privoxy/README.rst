@@ -94,7 +94,7 @@ How to apply results
 
 1. Install privoxy. Optionally setup it as transparent proxy
 
-2. Change privoxy config file: Add following lines
+2. Change privoxy config file. Add following lines::
 
     actionsfile ab2p.system.action
     actionsfile ab2p.action
