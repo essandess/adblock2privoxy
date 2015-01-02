@@ -2,15 +2,21 @@ name:                adblock2privoxy
 version:             1.3.0
 cabal-version:       >= 1.10
 build-type:          Simple
-tested-with:         GHC==7.8.3
+tested-with:         
+                     GHC==7.8.3,
+                     GHC==7.6.3
 author:              Alexey Zubritsky <adblock2privoxy@zubr.me>
 data-files:          
                 templates/ab2p.system.action,
                 templates/ab2p.system.filter
 extra-source-files:  
                 README.rst
+                INSTALL.rst
                 changelog
                 man/man1/adblock2privoxy.1
+                distribution/rpmbuild/SPECS/adblock2privoxy.spec
+                distribution/buildWin.bat
+                distribution/makeFedoraRpm.sh
 license:             GPL-3
 maintainer:          Alexey Zubritskiy <adblock2privoxy@zubr.me>
 license-file:        LICENSE

@@ -4,6 +4,7 @@ module RpmSpec (
 ) 
 where
 import Control.Applicative 
+import Data.String.Utils 
 import Control.Monad
 import Distribution.PackageDescription
 import Distribution.Package
@@ -48,14 +49,14 @@ template now = []
         ## ""
         ## ""
         ## "%prep"
-        ## "%setup -q"
+        ## "%setup -q -T -D -n root"
         ## "cabal update"
         ## "cabal install --user --only-dependencies --enable-optimization=2"
         ## ""
         ## ""
         ## "%build"
         ## "%global cabal_configure_options --user"
-        ## "%global ghc_user_conf 1."
+        ## "%global ghc_user_conf 1"
         ## "%global ghc_without_dynamic 1"
         ## "%ghc_bin_build"
         ## ""
@@ -65,7 +66,8 @@ template now = []
         ## ""
         ## ""
         ## "%files"
-        ## "%doc " # (unwords <$> licenseFiles) # " " # (unwords <$> extraSrcFiles)
+        ## "%doc " # (unwords <$> licenseFiles) # " " 
+                   # (unwords <$> filter (not.startswith "distribution") . extraSrcFiles)
         ## "%{_bindir}/%{name}"
         ## "%{_datadir}/%{name}-%{version}"
         ## ""

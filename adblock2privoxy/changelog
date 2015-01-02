@@ -1,3 +1,11 @@
+1.3.0
+		* Build and packaging process refactoring
+		* Build script for windows
+		* Installation documentation
+		* CSS server domain changed from hardcoded 'privoxy.zubr.me' to configurable one
+		* Element hiding CSS generation is skipped if the domain is not specified
+		* Task files contains output paths, so it's possible to run ab2p with single parameter: task file name
+		* Bugfixes for tickets 
 1.2.4
 	    * Documentation and bugfixes
 

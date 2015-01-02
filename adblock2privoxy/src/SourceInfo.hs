@@ -1,10 +1,10 @@
 module SourceInfo
 (
 SourceInfo(_url),
-showInfos,
+showInfo,
 updateInfo,
 makeInfo,
-logInfo,
+readLogInfos,
 infoExpired
 ) where
 import InputParser
@@ -31,15 +31,15 @@ separator = "----- source -----"
 endMark :: String
 endMark = "------- end ------"
 
-showInfos :: [SourceInfo] -> [String] 
-showInfos sourceInfos = (sourceInfos >>= showInfo) ++ [endMark ++ "\n"]
+showInfo :: [SourceInfo] -> [String] 
+showInfo sourceInfos = (sourceInfos >>= showInfoItem) ++ [endMark ++ "\n"]
 
-showInfo :: SourceInfo -> [String] 
-showInfo sourceInfo@(SourceInfo _ url _ _ lastUpdated expires _ expired) = 
+showInfoItem :: SourceInfo -> [String] 
+showInfoItem sourceInfo@(SourceInfo _ url _ _ lastUpdated expires _ expired) = 
         catMaybes [ Just separator,
                     optionalLine "Title: " _title,
-                    Just $ concat ["Url: ", url],
-                    Just $ concat ["Last modified: ", formatTime defaultTimeLocale "%d %b %Y %H:%M %Z" lastUpdated],
+                    Just $ "Url: " ++ url,
+                    Just $ "Last modified: " ++ formatTime defaultTimeLocale "%d %b %Y %H:%M %Z" lastUpdated,
                     Just $ concat ["Expires: ", show expires, " hours", expiredMark], 
                     optionalLine "Version: " $ show . _version,
                     optionalLine "License: " _license,
@@ -48,7 +48,7 @@ showInfo sourceInfo@(SourceInfo _ url _ _ lastUpdated expires _ expired) =
     expiredMark | expired = " (expired)"
                 | otherwise = ""
     optionalLine caption getter | getter sourceInfo == getter emptySourceInfo = Nothing
-                                | otherwise = Just $ concat [caption, getter sourceInfo] 
+                                | otherwise = Just $ caption ++ getter sourceInfo 
 
 updateInfo :: UTCTime -> [Line] -> SourceInfo -> SourceInfo
 updateInfo now lns old
@@ -60,15 +60,15 @@ updateInfo now lns old
 makeInfo :: String -> SourceInfo
 makeInfo url = emptySourceInfo { _url = url }
 
-logInfo :: [String] -> [SourceInfo]
-logInfo lns = chunkInfo <$> chunks
+readLogInfos :: [String] -> [SourceInfo]
+readLogInfos lns = chunkInfo <$> chunks
    where 
    chunks = filter (not.null) . split [separator] . takeWhile (/= endMark) $ lns
    chunkInfo chunk = execState (sequence $ parseInfo <$> chunk) emptySourceInfo
 
 infoExpired :: UTCTime -> SourceInfo -> Bool
 infoExpired now (SourceInfo _ _ _ _ lastUpdated expires _ _ ) = 
-        diffUTCTime now lastUpdated > (fromInteger $ expires * 60 * 60)
+        diffUTCTime now lastUpdated > fromInteger (expires * 60 * 60)
 
 lineComment :: Line -> String
 lineComment (Line _ (Comment text)) = text
@@ -86,7 +86,7 @@ parseInfo text = do
             <$> parseTime defaultTimeLocale "%d %b %Y %H:%M %Z" 
             <$> (string "Last modified: " *> many1 anyChar)
         licenseParser = (\x -> info{_license = x}) 
-            <$> ((string "Licen" <|> string "Лицензия") *> (manyTill anyChar $ char ':') 
+            <$> ((string "Licen" <|> string "Лицензия") *> manyTill anyChar (char ':') 
                 *> skipMany (char ' ') *> many1 anyChar)
         expiresParser = (\n unit -> info{_expires = unit * read n}) 
             <$> (string "Expires: " *> many1 digit) <*> (24 <$ string " days" <|> 1 <$ string " hours") 

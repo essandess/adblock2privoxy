@@ -18,7 +18,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
 --count 1 \
 --key-name ab2p \
 --security-groups launch-wizard-2 \
---instance-type m1.small \
+--instance-type m3.medium \
 --block-device-mappings '[{"DeviceName": "/dev/sda1","Ebs": {"VolumeSize": 10,"DeleteOnTermination": true,"VolumeType": "standard"}}]' \
 | sed -n -r '/InstanceId/ {s/.*:\s"([[:alnum:]-]+)".*/\1/;p}')
 

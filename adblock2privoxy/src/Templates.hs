@@ -1,8 +1,9 @@
 module Templates where
 import  {-# SOURCE #-}  UrlBlocker
 import Paths_adblock2privoxy
-import System.Directory (copyFile)
 import System.FilePath ((</>))
+import Data.String.Utils (replace, startswith)
+import Control.Applicative
 
 blockCss, ab2pPrefix, actionsFilePrefix, filtersFilePrefix :: String
 blockCss = "{display:none!important;visibility:hidden!important}"
@@ -28,11 +29,20 @@ terminalActionSwitch False Xpopup = "-filter{ab2p-popup-filter}"
 terminalActionSwitch True Dnt = "+add-header{DNT: 1}"
 terminalActionSwitch _ _ = "" 
 
-writeTemplateFiles :: String -> IO ()
-writeTemplateFiles outDir = do
+writeTemplateFiles :: String -> String -> IO ()
+writeTemplateFiles outDir cssDomain = do
         copySystem "ab2p.system.action"
         copySystem "ab2p.system.filter"
-        where 
+        where
+        filterDomain content = unlines $ filterLine <$> lns
+                where
+                lns = lines content
+                replace' line (from, to) = replace from to line
+                filterLine line
+                        | null cssDomain && startswith "[?CSS_DOMAIN]" line = "" 
+                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[CSS_DOMAIN]", cssDomain)] 
+                                  
         copySystem file = do
                 dataDir <- getDataDir
-                copyFile (dataDir  </> "templates" </> file) (outDir </> file)
+                content <- readFile $ dataDir  </> "templates" </> file
+                writeFile (outDir </> file) $ filterDomain content

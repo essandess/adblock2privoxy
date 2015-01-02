@@ -1,15 +1,15 @@
 #AbBlock system actions -- don't edit --
 
 {+set-image-blocker{blank} \
- +filter{ab2p-elemhide-filter} \
+[?CSS_DOMAIN] +filter{ab2p-elemhide-filter} \
  +client-header-tagger{ab2p-elemhide-check-debug} \
  +client-header-tagger{ab2p-handle-as-image-c} \
  +server-header-tagger{ab2p-handle-as-image-s}}
 /
 
-{-filter{ab2p-elemhide-filter} \
- +filter{ab2p-elemhide-filter-debug}}
-TAG:^ab2p-elemhide-filter-debug$
+[?CSS_DOMAIN]{-filter{ab2p-elemhide-filter} \
+[?CSS_DOMAIN] +filter{ab2p-elemhide-filter-debug}}
+[?CSS_DOMAIN]TAG:^ab2p-elemhide-filter-debug$
 
 {+handle-as-image}
 TAG:^ab2p-handle-as-image$

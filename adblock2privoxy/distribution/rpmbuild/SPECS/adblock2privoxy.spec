@@ -42,14 +42,14 @@ Unsupported: collapse, background, xbl, ping and dtd
 
 
 %prep
-%setup -q
+%setup -q -T -D -n root
 cabal update
 cabal install --user --only-dependencies --enable-optimization=2
 
 
 %build
 %global cabal_configure_options --user
-%global ghc_user_conf 1.
+%global ghc_user_conf 1
 %global ghc_without_dynamic 1
 %ghc_bin_build
 

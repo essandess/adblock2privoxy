@@ -67,6 +67,7 @@ elemBlock path info = writeElemBlock . elemBlockData
          splitEvery n = takeWhile (not . null) . unfoldr (Just . splitAt n)
          writeCssFile filename content = 
                 do outFile <- openFile filename WriteMode
+                   hSetEncoding outFile utf8
                    hPutStrLn outFile "/*"
                    _ <- mapM (hPutStrLn outFile) info'
                    hPutStrLn outFile "*/"

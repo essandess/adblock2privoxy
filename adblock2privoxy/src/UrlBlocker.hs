@@ -47,13 +47,14 @@ urlBlock path info = writeBlockData . urlBlockData
            writeContent (path </> "ab2p.action") Templates.actionsFilePrefix actions
     writeContent filename header content = 
          do outFile <- openFile filename WriteMode
-            hPutStrLn outFile (header) 
+            hSetEncoding outFile utf8
+            hPutStrLn outFile header 
             _ <- mapM (hPutStrLn outFile) $ ('#':) <$> info
             hPutStrLn outFile $ intercalate "\n\n" $ show <$> content
             hClose outFile
 
 urlBlockData :: [Line] -> UrlBlockData 
-urlBlockData lns = filterBlockData $ result
+urlBlockData lns = filterBlockData result
     where
     result = mconcat [nodeResult node | node <- shortenNodes $ sortBy cmpPolicy $ filterNodesList blockLines]
     cmpPolicy node1 node2 = compare (_policy node1) (_policy node2)
@@ -69,7 +70,7 @@ urlBlockData lns = filterBlockData $ result
         blockLine _ = []
     
 filterNodesList :: [FilteringNode] -> [FilteringNode]
-filterNodesList nodes = Map.foldr (:) [] $ Map.fromListWith joinNodes $ list
+filterNodesList nodes = Map.foldr (:) [] $ Map.fromListWith joinNodes list
     where
     list = [(name node, node) | node <- nodes]
     joinNodes (Node patterns1 filters1 type1 policy1 method1) 
@@ -89,7 +90,7 @@ shortenNodes :: [FilteringNode] -> [FilteringNode]
 shortenNodes nodes = evalState (mapM shortenNode nodes) initialState
     where 
     initialState = Map.empty :: Map.Map String String
-    shortenNode node = (\f -> node {_filters = f}) <$> ((mapM.mapM) shortenFilter $ _filters node)       
+    shortenNode node = (\f -> node {_filters = f}) <$> (mapM.mapM) shortenFilter (_filters node)       
     shortenFilter headerFilter@(HeaderFilter headerType flt) 
         = let filterCode = _code flt 
           in do 
@@ -100,7 +101,7 @@ shortenNodes nodes = evalState (mapM shortenNode nodes) initialState
                     (_,[]) -> return headerFilter
                     (start, rest) -> 
                         let end = last $ split "]" rest 
-                            shortenCode' = start ++ (show $ Map.size dictionary + 1) ++  end 
+                            shortenCode' = start ++ show (Map.size dictionary + 1) ++  end 
                         in do put $ Map.insert filterCode shortenCode' dictionary
                               return $ HeaderFilter headerType flt { _code = shortenCode' }
                             
@@ -116,13 +117,13 @@ filteringNodes policy patterns requestOptions
     popupResult = maybeToList (optionsToNodes (singleTypeOptions Popup) $> Xpopup)
     requestType = _requestType requestOptions
     mainOptions = [requestOptions {_requestType = requestType { _positive = mainPosRequestTypes } }]
-    mainPosRequestTypes = filter (`notElem` [Subdocument]) <$> (_positive requestType)
-    boolOptions getter = case getter requestOptions of
-        False -> Nothing
-        True  -> Just requestOptions {_requestType = Restrictions Nothing [], _thirdParty = Nothing}
+    mainPosRequestTypes = filter (`notElem` [Subdocument]) <$> _positive requestType
+    boolOptions getter = if getter requestOptions
+        then Nothing
+        else Just requestOptions {_requestType = Restrictions Nothing [], _thirdParty = Nothing}
     singleTypeOptions singleType = 
         do
-        foundTypes <- filter (== singleType) <$> (_positive requestType)
+        foundTypes <- filter (== singleType) <$> _positive requestType
         foundType <- listToMaybe foundTypes
         return requestOptions {_requestType = requestType { _positive = Just [foundType] } }
     optionsToNodes options = collectNodes patterns <$> headerFilters policy 2 <$> options
@@ -156,7 +157,7 @@ nodeResult node@(Node patterns (levelFilters : nextLevelFilters) nodeType policy
                                         (Switch False BlockAction)
                                         (Switch True . TaggerAction <$> taggers),
                       _patterns   = patterns,
-                      _hasTag     = (nodeType == Nested) }  
+                      _hasTag     = nodeType == Nested }  
     taggers = filterTaggers <$> levelFilters
     filterTaggers flt@(HeaderFilter _ (Filter _ _ orEmpty))  
         = newTagger flt nextLevelFilters policy method Regular moreForwarding
@@ -182,11 +183,11 @@ instance Named FilteringNode where
     
 filtersCode :: HeaderFilters -> ChainType -> Policy -> BlockMethod -> String -> String
 filtersCode [] _ policy method rest 
-    = join [Templates.ab2pPrefix, toLower <$> show policy, "-" ,toLower <$> show method,(if null rest then "" else "-"), rest]
+    = join [Templates.ab2pPrefix, toLower <$> show policy, "-" ,toLower <$> show method, if null rest then "" else "-", rest]
 filtersCode (levelFilters : nextLevelFilters) chainType policy method rest 
-    = filtersCode nextLevelFilters Nested policy method $ join [levelCode, (if null rest then "" else "-when-"), rest]
+    = filtersCode nextLevelFilters Nested policy method $ join [levelCode, if null rest then "" else "-when-", rest]
     where 
-    levelCode = (intercalate "-" $ filterCode <$> levelFilters)
+    levelCode = intercalate "-" $ filterCode <$> levelFilters
     filterCode (HeaderFilter HeaderType {_typeCode = typeCode} (Filter code _ orEmpty))
         | chainType == Negate            = negateCode
         | chainType == Nested && orEmpty = negateCode ++ '-' : mainCode  
@@ -229,9 +230,9 @@ instance Show ActionSwitch where
     show (Switch enable (TaggerAction tagger)) 
         = intercalate " \\\n " $ mainText : (_forwarding tagger >>= cancelTaggerText)
         where 
-        mainText = join [name enable, name $ _taggerType $ _headerType $ tagger, "{", name tagger,  "}" ]
+        mainText = join [name enable, name . _taggerType . _headerType $ tagger, "{", name tagger,  "}" ]
         cancelTaggerText (CancelTagger cancelTaggerCode) 
-            = [join [name enable, name $ _taggerType $ _headerType $ tagger, "{", cancelTaggerCode,  "}" ]]
+            = [join [name enable, name . _taggerType . _headerType $ tagger, "{", cancelTaggerCode,  "}" ]]
         cancelTaggerText _ = []                
     
 instance Named Action where

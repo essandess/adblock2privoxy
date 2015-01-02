@@ -2,6 +2,7 @@ module Task (
 writeTask,
 readTask
 ) where
+import System.IO.Strict as Strict
 import System.IO
 import InputParser
 import Statistics
@@ -23,6 +24,6 @@ writeTask filename info lns =
 
 readTask :: String -> IO [String]       
 readTask path = do 
-        result <- lines <$> readFile path
+        result <- lines <$> Strict.readFile path
         return $ length result `seq` result --read whole file to allow its overwriting
 

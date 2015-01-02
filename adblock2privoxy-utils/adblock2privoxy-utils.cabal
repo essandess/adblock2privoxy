@@ -33,7 +33,8 @@ executable adblock2privoxy-utils
                    filepath,
                    directory,
                    time,
-                   old-locale
+                   old-locale,
+                   MissingH
 
 source-repository head
   type:      git
