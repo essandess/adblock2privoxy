@@ -1,4 +1,4 @@
-.TH "ADBLOCK2PRIVOXY" "1" "2015\-01\-01" "adblock2privoxy 1.3.0" "General Commands Manual"
+.TH "ADBLOCK2PRIVOXY" "1" "2015\-01\-03" "adblock2privoxy 1.3.0" "General Commands Manual"
 .SH ADBLOCK2PRIVOXY
 .PP
 \f[B]Convert adblock config files to privoxy format\f[]
@@ -44,7 +44,7 @@ Unsupported: collapse, background, xbl, ping and dtd
 .RE
 .PP
 Tested with privoxy version 3.0.21.
-Element blocking feature requires a webserver to serve CSS files.
+Element hiding feature requires a webserver to serve CSS files.
 See Nginx and Apache config examples provided.
 .SS Description
 .PP
@@ -59,38 +59,57 @@ Nothing is done if all sources in the task file are up to date.
 .SS Options
 .RS
 .TP
-.B \-v, \-\-version
-show version number
+.B \-v \-\-version
+Show version number
 .RS
 .RE
 .TP
-.B \-p PATH, \-\-privoxyDir=PATH
-privoxy config output path (required)
+.B \-p PATH \-\-privoxyDir=PATH
+Privoxy config output path
 .RS
 .RE
 .TP
-.B \-w PATH, \-\-webDir=PATH
-css files output path (optional, privoxyDir is used by default)
+.B \-w PATH \-\-webDir=PATH
+Css files output path
 .RS
 .RE
 .TP
-.B \-t PATH, \-\-taskFile=PATH
-path to task file containing urls to process
+.B \-d DOMAIN \-\-domainCSS=DOMAIN
+Domain of CSS web server (required for Element Hide functionality)
 .RS
 .RE
 .TP
-.B \-f, \-\-forced
-run even if no sources are expired
+.B \-t PATH \-\-taskFile=PATH
+Path to task file containing urls to process and options.
+.RS
+.RE
+.TP
+.B \-f \-\-forced
+Run even if no sources are expired
 .RS
 .RE
 .RE
+.PP
+If taskFile is not specified explicilty, [privoxyDir]/ab2p.task is used.
+.PP
+If task file exists and privoxyDir, webDir or domainCSS is not
+specified, corresponding value is taken from task file.
+.PP
+If webDir is not specified (and cannot be taken from task file),
+privoxyDir value is used for webDir.
+.PP
+If domainCSS is not specified (and cannot be taken from task file),
+Element Hide functionality become disabled (and no webserver is needed).
+.PP
+domainCSS can contain just IP address if no CSS web server has no
+associated domain.
 .SS Usage
 .PP
 Example of first run:
 .IP
 .nf
 \f[C]
-adblock2privoxy\ \-p\ /etc/privoxy\ \-w\ /var/www/privoxy\ \-t\ my_ab2b.task\ https://easylist\-downloads.adblockplus.org/easylist.txt\ https://easylist\-downloads.adblockplus.org/advblock.txt\ my_custom.txt
+adblock2privoxy\ \-p\ /etc/privoxy\ \-w\ /var/www/privoxy\ \-d\ www.example.com\ \-t\ my_ab2b.task\ https://easylist\-downloads.adblockplus.org/easylist.txt\ https://easylist\-downloads.adblockplus.org/advblock.txt\ my_custom.txt
 \f[]
 .fi
 .PP
@@ -98,7 +117,7 @@ Example of subsequent runs:
 .IP
 .nf
 \f[C]
-adblock2privoxy\ \-p\ /etc/privoxy\ \-w\ /var/www/privoxy\ \-t\ my_ab2b.task
+adblock2privoxy\ \-t\ my_ab2b.task
 \f[]
 .fi
 .PP
@@ -124,7 +143,7 @@ ab2p.common.css
 .IP \[bu] 2
 ab2p.css
 .IP \[bu] 2
-[lot of directories for first level domain names]
+[lot of directories for all levels of domain names]
 .RE
 .IP \[bu] 2
 taskFile:
@@ -132,7 +151,8 @@ taskFile:
 .RS
 .IP \[bu] 2
 special file containing execution details.
-It can be reused to update privoxy config from same sources.
+It can be reused to update privoxy config from same sources with same
+options.
 .RE
 .SS How to apply results
 .IP "1." 3
@@ -162,8 +182,8 @@ Nginx config example:
 \f[C]
 server\ {
 \ \ \ \ \ \ \ \ listen\ 80;
-\ \ \ \ \ \ \ \ #ab2p\ css\ domain\ name\ (optional)
-\ \ \ \ \ \ \ \ server_name\ privoxy.zubr.me;
+\ \ \ \ \ \ \ \ #ab2p\ css\ domain\ name\ (optional,\ should\ be\ equal\ to\ domainCSS\ parameter)
+\ \ \ \ \ \ \ \ server_name\ www.example.com;
 
 \ \ \ \ \ \ \ \ #root\ =\ webDir\ parameter\ value\ 
 \ \ \ \ \ \ \ \ root\ /var/www/privoxy;\ 
@@ -187,7 +207,7 @@ Apache config example:
 .nf
 \f[C]
 <VirtualHost\ *:80>
-\ \ \ \ \ \ \ \ #ab2p\ css\ domain\ name\ (optional)
+\ \ \ \ \ \ \ \ #ab2p\ css\ domain\ name\ (optional,\ should\ be\ equal\ to\ domainCSS\ parameter)
 \ \ \ \ \ \ \ \ ServerName\ www.example.com\ 
 
 \ \ \ \ \ \ \ \ #root\ =\ webDir\ parameter\ value\ 
@@ -217,8 +237,8 @@ EasyList (https://easylist.adblockplus.org/en/)
 Russian AD list (https://code.google.com/p/ruadlist/)
 .RE
 .IP "5)" 3
-Run adblock2privoxy providing privoxy dir, web dir and adblock input
-file urls
+Run adblock2privoxy providing privoxy dir, web dir, domain and adblock
+input file urls
 .IP "6)" 3
 Restart privoxy and apache to load updated configs
 .PP

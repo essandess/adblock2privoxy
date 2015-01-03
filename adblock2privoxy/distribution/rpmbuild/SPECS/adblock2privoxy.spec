@@ -59,11 +59,11 @@ cabal install --user --only-dependencies --enable-optimization=2
 
 
 %files
-%doc LICENSE README.rst changelog man/man1/adblock2privoxy.1
+%doc LICENSE README.rst INSTALL.rst changelog man/man1/adblock2privoxy.1
 %{_bindir}/%{name}
 %{_datadir}/%{name}-%{version}
 
 
 %changelog
-* Thu Jan 01 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.3.0
+* Sat Jan 03 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.3.0
 - Rpm release for new version (generated from cabal file)
