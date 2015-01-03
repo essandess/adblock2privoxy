@@ -22,7 +22,7 @@ isJustFilled Nothing = False
 isJustFilled (Just list) = not.null $ list
 
 
-getStat :: Line -> Stat-> Stat
+getStat :: Line -> Stat-> Stat 
 getStat  (Line _ Comment {} ) = increment "Comments"
 getStat  (Line _ Error {}) = increment "Errors"
 getStat  (Line _ ElementHide {}) = increment "Elements hiding rules"

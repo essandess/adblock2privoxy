@@ -15,7 +15,7 @@ import Control.Monad.State
 import qualified Templates 
 import qualified Data.Map as Map
 import Data.String.Utils (split)
-import Data.Maybe   
+import Data.Maybe    
 import System.IO  
 import System.FilePath
 import PatternConverter          

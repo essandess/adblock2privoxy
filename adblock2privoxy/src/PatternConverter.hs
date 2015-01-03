@@ -137,7 +137,7 @@ parseUrl =
                                 in [url {_query = query'}] 
                              else []
 
-        -- TODO: process port as an url part
+        -- TODO: process port as an url part 
         urlParts :: [StringStateParser (String,String,String)]
         urlParts = square3 proto (manyCases host) (oneCase query)
             where          

@@ -16,7 +16,7 @@ import Control.Monad.RWS
 import Control.Monad.State
 import Data.Maybe
         
--- parser should consume some input to prevent infinite loop
+-- parser should consume some input to prevent infinite loop 
 manyCases :: (Monoid a, Monoid st) => Parser a -> StateParser st a
 manyCases p = do    acc <- get
                     put  $ Just mempty

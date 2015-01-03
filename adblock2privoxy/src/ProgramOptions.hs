@@ -48,7 +48,7 @@ options =
          "Path to task file containing urls to process and options. privoxyDir, webDir and domainCSS values are taken from this file if not specified explicitly"
      , Option "f" ["forced"]
          (NoArg (\ opts -> opts { _forced = True }))
-         "run even if no sources are expired"
+         "Run even if no sources are expired"
      ]
 
 parseOptions :: [String] -> IO (Options, [String])
@@ -65,7 +65,7 @@ parseOptions argv =
         setDefaults opts@(Options _ privoxyDir _ "" _ _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
         setDefaults opts = opts  
 
-versionText :: String
+versionText :: String 
 versionText = "adblock2privoxy version " ++ showVersion version
 
 writeError :: String -> IO a

@@ -23,7 +23,7 @@ type PolicyTree = DomainTree NodePolicy
 showTree :: Show a => Int -> DomainTree a -> String
 showTree lvl (Node name value children) 
     = concat $  
-        [replicate (lvl * 2) ' ', "\"", name, "\" - ", (show value)]
+        [replicate (lvl * 2) ' ', "\"", name, "\" - ", show value]
         ++ (('\n':) <$> showTree (lvl + 1) <$> children)
 
 instance Show a => Show (DomainTree a) where
@@ -97,7 +97,7 @@ mergeTrees mergeValue t1@(Node name1 value1 children1) t2@(Node name2 value2 chi
 
 trimTree :: NodePolicy -> PolicyTree -> PolicyTree
 trimTree trump (Node name policy children) = Node name policy childrenFiltered
-    where 
+    where  
     childrenFiltered = filter (not.redundantChild) childrenTrimmed
     childrenTrimmed = trimTree trump <$> children
     redundantChild (Node _ childPolicy childChildren) = samePolicy childPolicy && null childChildren

@@ -72,7 +72,7 @@ infoExpired now (SourceInfo _ _ _ _ lastUpdated expires _ _ ) =
 
 lineComment :: Line -> String
 lineComment (Line _ (Comment text)) = text
-lineComment _ = ""
+lineComment _ = "" 
 
 parseInfo :: String -> State SourceInfo ()
 parseInfo text = do

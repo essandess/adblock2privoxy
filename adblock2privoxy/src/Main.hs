@@ -16,7 +16,6 @@ import Data.Text.Lazy.Encoding
 import Data.Text.Lazy (unpack)
 import Network.Socket
 import System.Directory
-import Control.Monad
 
   
 getResponse :: String -> IO String

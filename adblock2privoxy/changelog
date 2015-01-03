@@ -2,10 +2,10 @@
 		* Build and packaging process refactoring
 		* Build script for windows
 		* Installation documentation
-		* CSS server domain changed from hardcoded 'privoxy.zubr.me' to configurable one
+		* CSS server domain changed from hardcoded 'privoxy.zubr.me' to configurable one (ticket #1)
 		* Element hiding CSS generation is skipped if the domain is not specified
 		* Task files contains output paths, so it's possible to run ab2p with single parameter: task file name
-		* Bugfixes for tickets 
+		* Bugfixes for tickets #7, #8, #9
 1.2.4
 	    * Documentation and bugfixes
 

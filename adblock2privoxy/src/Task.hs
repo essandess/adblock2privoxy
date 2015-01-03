@@ -15,7 +15,7 @@ writeTask filename info lns =
         errorLine (Line position (Error text)) 
             = [concat ["ERROR: ", recordSourceText position, " - ", text]]
         errorLine _ = []
-    in do  
+    in do   
         outFile <- openFile filename WriteMode
         _ <- mapM (hPutStrLn outFile) info
         _ <- sequence $ hPutStrLn outFile <$> statistics 

@@ -54,7 +54,7 @@ data RequestOptions = RequestOptions {
                       }
         deriving (Read,Show,Eq)
 
--- primitive
+-- primitive 
 type Pattern = String
 type Domain = String
 
