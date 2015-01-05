@@ -25,6 +25,7 @@ You can install adblock2privoxy from sources if there is no binary package for y
 3. Open console and go to the sources folder  
 4. Run:: 
 
+	cabal update
 	runhaskell Setup.hs configure --user
 	runhaskell Setup.hs build
 	runhaskell Setup.hs install

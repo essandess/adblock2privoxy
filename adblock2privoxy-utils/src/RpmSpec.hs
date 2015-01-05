@@ -63,11 +63,15 @@ template now = []
         ## ""
         ## "%install"
         ## "%ghc_bin_install"
+        ## "cp -r man %{buildroot}%{_mandir}" 
         ## ""
         ## ""
         ## "%files"
+        ## "%doc %{_mandir}"
         ## "%doc " # (unwords <$> licenseFiles) # " " 
-                   # (unwords <$> filter (not.startswith "distribution") . extraSrcFiles)
+                   # (unwords <$> filter (not.startswith "man") 
+                                 .filter (not.startswith "distribution") 
+                                 . extraSrcFiles)
         ## "%{_bindir}/%{name}"
         ## "%{_datadir}/%{name}-%{version}"
         ## ""

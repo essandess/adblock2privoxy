@@ -1,10 +1,10 @@
 #!/bin/bash
 set -e
 
-AMI=$1
-USER=$2
+AMI=ami-1eb35469
+USER=fedora
 COMMAND=$3
-BUILD_ID=$4
+BUILD_ID=$(date -u "+%Y-%m-%d_%H:%M:%S")
 
 echo "build started, see $BUILD_ID/build.log for result"
 mkdir -p $BUILD_ID
@@ -44,27 +44,37 @@ done
 
 echo "Upload files"
 sftp -i ~/.ssh/ab2p.pem -o "IdentitiesOnly yes" -o "StrictHostKeyChecking no" $USER@$INSTANCE_IP<<END
-mkdir adblock2privoxy
-put -r ../../adblock2privoxy
+put *.rpm
 exit
 END
 
-echo "Run build with $COMMAND"
+echo "Install and run adblock2privoxy"
 ssh -t -t -i ~/.ssh/ab2p.pem -o "IdentitiesOnly yes" -o "StrictHostKeyChecking no" $USER@$INSTANCE_IP<<END
-cd adblock2privoxy/distribution
+rpm -i *.rpm
+yum install p7zip
+
+mkdir -p out/privoxy
+adblock2privoxy -p out/privoxy -w out/web -d www.example.com https://easylist-downloads.adblockplus.org/easylist.txt https://easylist-downloads.adblockplus.org/easyprivacy.txt https://easylist-downloads.adblockplus.org/advblock.txt https://easylist-downloads.adblockplus.org/bitblock.txt https://easylist-downloads.adblockplus.org/cntblock.txt
+7za a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on all.7z out/
+rm -rf out
+
+mkdir -p out/privoxy
+adblock2privoxy -p out/privoxy -w out/web -d www.example.com https://easylist-downloads.adblockplus.org/easylist.txt
+7za a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on easylist.7z out/
+rm -rf out
+
 ./$COMMAND.sh | tee build.log
 exit
 END
 
 echo "Download result from $RESULT_PATH"
 sftp -i ~/.ssh/ab2p.pem -o "IdentitiesOnly yes" -o "StrictHostKeyChecking no" $USER@$INSTANCE_IP<<END
-get -r adblock2privoxy/distribution/binary/* $BUILD_ID
+get *.7z $BUILD_ID
 exit
 END
 
 echo "Upload result to s3"
-aws s3 cp $BUILD_ID/adblock2privoxy* s3://ab2p/
-
+aws s3 cp $BUILD_ID\*.7z s3:\\ab2p.zubr.me\
 
 echo "Terminate instance"
 aws ec2 terminate-instances --instance-ids "$INSTANCE_ID"

@@ -7,6 +7,7 @@ ECHO   from https://s3.amazonaws.com/download.fpcomplete.com/minghc/minghc-7.8.3
 
 MKDIR binary\adblock2privoxy
 CD ..
+cabal update
 runhaskell Setup.hs configure --user --prefix=%cd%\distribution\binary\adblock2privoxy
 runhaskell Setup.hs build
 runhaskell Setup.hs install
