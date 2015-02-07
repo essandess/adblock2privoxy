@@ -8,7 +8,7 @@ import Control.Applicative
 import qualified Data.Map as Map
 import Data.Maybe
 import Utils
-import System.IO hiding (hGetContents)
+import System.IO
 import System.FilePath
 import Data.List 
 import System.Directory

@@ -16,12 +16,20 @@ import Data.Text.Lazy.Encoding
 import Data.Text.Lazy (unpack)
 import Network.Socket
 import System.Directory
+import System.IO
+
 
   
 getResponse :: String -> IO String
 getResponse url = do
         putStrLn $ "load " ++ url ++ "..."
         withSocketsDo $ unpack . decodeUtf8 <$> simpleHttp url
+        
+getFileContent :: String -> IO String
+getFileContent url = do
+    handle <- openFile url ReadMode 
+    hSetEncoding handle utf8
+    hGetContents handle
 
 processSources :: Options -> String -> [SourceInfo]-> IO ()
 processSources options taskFile sources = do 
@@ -40,7 +48,7 @@ processSources options taskFile sources = do
         parseSource sourceInfo = do
             let 
                 url = _url sourceInfo
-                loader = if isURI url then getResponse else readFile
+                loader = if isURI url then getResponse else getFileContent
             putStrLn $ "process " ++ url
             text <- loader url
             now <- getCurrentTime

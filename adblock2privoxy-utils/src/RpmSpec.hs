@@ -68,7 +68,7 @@ template now = []
         ## ""
         ## "%files"
         ## "%doc %{_mandir}"
-        ## "%doc " # (unwords <$> licenseFiles) # " " 
+        ## "%doc " # (licenseFile) # " " 
                    # (unwords <$> filter (not.startswith "man") 
                                  .filter (not.startswith "distribution") 
                                  . extraSrcFiles)

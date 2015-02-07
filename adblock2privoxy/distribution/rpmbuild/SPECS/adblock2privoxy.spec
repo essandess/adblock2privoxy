@@ -1,11 +1,11 @@
 Name:    adblock2privoxy
-Version: 1.3.1
+Version: 1.3.2
 Release: 1%{?dist}
 Summary: Convert adblock config files to privoxy format
 
 License: GPL-3
 URL:     https://projects.zubr.me/wiki/adblock2privoxy
-Source0: http://hackage.haskell.org/package/adblock2privoxy-1.3.1/adblock2privoxy-1.3.1.tar.gz
+Source0: http://hackage.haskell.org/package/adblock2privoxy-1.3.2/adblock2privoxy-1.3.2.tar.gz
 Vendor:  Alexey Zubritskiy <adblock2privoxy@zubr.me>
 Group:   Web
 
@@ -67,5 +67,5 @@ cp -r man %{buildroot}%{_mandir}
 
 
 %changelog
-* Mon Jan 05 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.3.1
+* Sat Feb 07 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.3.2
 - Rpm release for new version (generated from cabal file)

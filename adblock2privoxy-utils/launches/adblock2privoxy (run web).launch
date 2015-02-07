@@ -3,7 +3,7 @@
 <stringAttribute key="EXTRA_ARGUMENTS" value="-p ../.out/privoxy -w ../.out/web -d www.example.com https://easylist-downloads.adblockplus.org/easylist.txt https://easylist-downloads.adblockplus.org/easyprivacy.txt https://easylist-downloads.adblockplus.org/advblock.txt https://easylist-downloads.adblockplus.org/bitblock.txt https://easylist-downloads.adblockplus.org/cntblock.txt"/>
 <stringAttribute key="PROJECT_NAME" value="adblock2privoxy"/>
 <stringAttribute key="STANZA" value="adblock2privoxy"/>
-<stringAttribute key="WORKING_DIRECTORY" value="/mnt/data/Projects/adblock2privoxy/adblock2privoxy"/>
+<stringAttribute key="WORKING_DIRECTORY" value="/home/alexey/Projects/adblock2privoxy/adblock2privoxy"/>
 <listAttribute key="org.eclipse.debug.ui.favoriteGroups">
 <listEntry value="org.eclipse.debug.ui.launchGroup.run"/>
 </listAttribute>
