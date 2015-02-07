@@ -1,5 +1,5 @@
 name:                adblock2privoxy
-version:             1.3.2
+version:             1.3.3
 cabal-version:       >= 1.10
 build-type:          Simple
 tested-with:         
@@ -98,4 +98,4 @@ source-repository this
   type:      git
   location:  ​http://projects.zubr.me/adblock2privoxy.git
   subdir:    adblock2privoxy
-  tag:       1.3.2
+  tag:       1.3.3

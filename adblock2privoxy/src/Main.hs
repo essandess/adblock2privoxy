@@ -17,6 +17,7 @@ import Data.Text.Lazy (unpack)
 import Network.Socket
 import System.Directory
 import System.IO
+import Control.Monad 
 
 
   
@@ -36,7 +37,8 @@ processSources options taskFile sources = do
         (parsed, sourceInfo) <- unzip <$> mapM parseSource sources   
         let parsed' = concat parsed 
             sourceInfoText = showInfo sourceInfo
-            optionsText = logOptions options               
+            optionsText = logOptions options
+        createDirectoryIfMissing True $ _privoxyDir options               
         writeTask taskFile (sourceInfoText ++ optionsText) parsed'
         if null._cssDomain $ options
                 then putStrLn "WARNING: CSS generation is not run because webserver domain is not specified"
@@ -60,7 +62,7 @@ processSources options taskFile sources = do
                            then return (parsed, sourceInfo')
                            else parseSource sourceInfo'
                 Left msg -> return ([], sourceInfo) <$ putStrLn $ show msg
-        
+
 main::IO()
 main =  do 
         now <- getCurrentTime
