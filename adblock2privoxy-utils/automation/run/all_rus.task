@@ -1,0 +1,71 @@
+----- source -----
+Title: EasyList
+Url: https://easylist-downloads.adblockplus.org/easylist.txt
+Last modified: 10 Feb 2015 20:50 UTC
+Expires: 96 hours
+Version: 201502172050
+License: https://easylist-downloads.adblockplus.org/COPYING
+Homepage: https://easylist.adblockplus.org/
+----- source -----
+Title: EasyPrivacy
+Url: https://easylist-downloads.adblockplus.org/easyprivacy.txt
+Last modified: 10 Feb 2015 20:51 UTC
+Expires: 96 hours
+Version: 201502172051
+License: https://easylist-downloads.adblockplus.org/COPYING
+Homepage: https://easylist.adblockplus.org/
+----- source -----
+Url: https://easylist-downloads.adblockplus.org/advblock.txt
+Last modified: 10 Feb 2015 20:50 UTC
+Expires: 72 hours
+Version: 201502172050
+License: http://creativecommons.org/licenses/by/3.0/
+Homepage: http://ruadlist.googlecode.com/
+----- source -----
+Url: https://easylist-downloads.adblockplus.org/bitblock.txt
+Last modified: 10 Feb 2015 20:50 UTC
+Expires: 120 hours
+Version: 201502172050
+License: http://creativecommons.org/licenses/by/3.0/
+Homepage: http://ruadlist.googlecode.com/
+----- source -----
+Url: https://easylist-downloads.adblockplus.org/cntblock.txt
+Last modified: 10 Feb 2015 20:50 UTC
+Expires: 120 hours
+Version: 201502172050
+License: http://creativecommons.org/licenses/by/3.0/
+Homepage: http://ruadlist.googlecode.com/
+------- end ------
+
+----- options -----
+Privoxy path: privoxy
+Web path: web
+CSS web server domain: www.example.com
+------- end ------
+
+Comments: 540
+Elements hiding rules: 36549
+Errors: 18
+Request block rules for exception: 4000
+Request block rules total: 38860
+Request block rules with domain option: 2163
+Request block rules with request type options: 2163
+Rules with third party option: 9425
+ERROR: /http://.*\/.*(?:[!"#$%&'()*+,./:;<=>?@\^_`{|}~-])(?:[!"#$%&'()*+,./:;<=>?@\^_`{|}~-])/$script,third-party,domain=247wallst.com|allenbwest.com|americanlivewire.com|blacklistednews.com|breathecast.com|brosome.com|chacha.com|cheezburger.com|christianpost.com|christiantoday.com|cinemablend.com|classicalite.com|crossmap.com|dailycaller.com|dealbreaker.com|designntrend.com|digitaljournal.com|gamerant.com|hallels.com|hellou.co.uk|hngn.com|infowars.com|investmentwatchblog.com|joblo.com|kdramastars.com|kpopstarz.com|latinpost.com|listverse.com|makeuseof.com|moddb.com|mstarz.com|musictimes.com|naturalnews.com|natureworldnews.com|newser.com|oddee.com|okmagazine.com|opposingviews.com|politicususa.com|radaronline.com|realfarmacy.com|screenrant.com|techtimes.com|theblaze.com|thefreedictionary.com|thegatewaypundit.com|theladbible.com|thelibertarianrepublic.com|townhall.com|uniladmag.com|unitrending.co.uk|valuewalk.com|vcpost.com|viralnova.com|whatculture.com|wimp.com (easylist.txt: 32274) - Record type detection failed
+ERROR: @@.gif#$domain=9tutorials.com|aseanlegacy.net|cbox.ws|eventosppv.me|funniermoments.com|ibmmainframeforum.com|onlinemoviesfreee.com|remo-xp.com|superplatyna.com|turktorrent.cc|tv-porinternet.com.mx|ver-flv.com (easylist.txt: 44794) - Record type detection failed
+ERROR: @@.gif#$image,domain=360haven.com|needrom.com (easylist.txt: 44795) - Record type detection failed
+ERROR: @@.jpg#$domain=desionlinetheater.com|firsttube.co|lag10.net|livrosdoexilado.org|mac2sell.net|movie1k.net|play-old-pc-games.com|rtube.de|uploadlw.com (easylist.txt: 44800) - Record type detection failed
+ERROR: @@.png#$domain=300mblink.com|amigosdelamili.com|android-zone.org|anime2enjoy.com|anizm.com|anonytext.tk|backin.net|better-explorer.com|bitcofree.com|chrissmoove.com|cleodesktop.com|debrastagi.com|debridit.com|fcportables.com|hogarutil.com|hostyd.com|ilive.to|lordpyrak.net|marketmilitia.org|mastertoons.com|minecraft-forum.net|myksn.net|pes-patch.com|portalzuca.net|premium4.us|puromarketing.com|realidadscans.org|secureupload.eu|stream2watch.me|streamlive.to|superplatyna.com|trizone91.com|turkdown.com|url4u.org|vencko.net|wowhq.eu (easylist.txt: 44806) - Record type detection failed
+ERROR: @@.png?*#$domain=mypapercraft.net|xlocker.net (easylist.txt: 44807) - Record type detection failed
+ERROR: @@||blogspot.com^*#-$image,domain=cricket-365.pw|cricpower.com|pirlotv.tv (easylist.txt: 44942) - Record type detection failed
+ERROR: @@||filmovizija.net^*#$image (easylist.txt: 45054) - Record type detection failed
+ERROR: @@||free.smsmarkaz.urdupoint.com^*#-$image (easylist.txt: 45062) - Record type detection failed
+ERROR: @@||i.imgur.com^*#.$image,domain=newmusicforpeople.org (easylist.txt: 45115) - Record type detection failed
+ERROR: @@||linkcrypt.ws/image/*#$image (easylist.txt: 45161) - Record type detection failed
+ERROR: @@||media.eventhubs.com/images/*#$image (easylist.txt: 45183) - Record type detection failed
+ERROR: @@||mzstatic.com^*.jpg#$image,domain=newmusicforpeople.org (easylist.txt: 45218) - Record type detection failed
+ERROR: @@||seekingalpha.com/adsframe.html#que=$subdocument (easylist.txt: 45316) - Record type detection failed
+ERROR: @@||teenidols4you.com^*#-$image (easylist.txt: 45354) - Record type detection failed
+ERROR: @@||youwatch.org^*#$image (easylist.txt: 45431) - Record type detection failed
+ERROR: @@.png#$domain=indiangilma.com|lfporn.com (easylist.txt: 45880) - Record type detection failed
+ERROR: @@#$image,domain=free-send.ru|modfiles.ru|planetaua.net (advblock.txt: 6593) - Record type detection failed

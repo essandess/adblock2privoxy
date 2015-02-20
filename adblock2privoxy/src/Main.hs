@@ -54,7 +54,8 @@ processSources options taskFile sources = do
             putStrLn $ "process " ++ url
             text <- loader url
             now <- getCurrentTime
-            case parse adblockFile url text of
+            let strictParse = text `seq` parse adblockFile url text
+            case strictParse of
                 Right parsed -> 
                         let sourceInfo' = updateInfo now parsed sourceInfo 
                             url' = _url sourceInfo'

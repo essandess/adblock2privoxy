@@ -6,6 +6,7 @@ import Control.Monad
 import Distribution.PackageDescription
 import ManPage
 import RpmSpec
+import DebControl
 
 -- It is helper executable updating documentation
 -- and distribution packages with 
@@ -16,5 +17,6 @@ main = do
     verbose <- liftM (elem "--verbose") getArgs
     cabalMeta <- liftM packageDescription $ readPackageDescription normal "adblock2privoxy.cabal"
     createManPage verbose cabalMeta     
-    createRpmSpec verbose cabalMeta                               
+    createRpmSpec verbose cabalMeta
+    createDebControl verbose cabalMeta                               
 

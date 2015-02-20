@@ -11,7 +11,7 @@ There are packages for various systems available at `downloads page <http://proj
 
 From sources
 ------------
-You can install adblock2privoxy from sources if there is no binary package for your system.
+You can install adblock2privoxy from sources if there is no binary package for your system. 
 
 1. Ensure you have Haskell compiler and Cabal 
 
@@ -26,7 +26,8 @@ You can install adblock2privoxy from sources if there is no binary package for y
 4. Run:: 
 
 	cabal update
-	runhaskell Setup.hs configure --user
+	cabal install --user --only-dependencies --enable-optimization=2
+	runhaskell Setup.hs configure --user --enable-optimization=2 
 	runhaskell Setup.hs build
 	runhaskell Setup.hs install
 

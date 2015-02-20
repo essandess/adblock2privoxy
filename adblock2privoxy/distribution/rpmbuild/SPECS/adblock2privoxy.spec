@@ -67,5 +67,5 @@ cp -r man %{buildroot}%{_mandir}
 
 
 %changelog
-* Sat Feb 07 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.3.3
+* Fri Feb 20 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.3.3
 - Rpm release for new version (generated from cabal file)
