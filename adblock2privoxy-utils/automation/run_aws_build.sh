@@ -17,11 +17,12 @@ INSTANCE_ID=$(aws ec2 run-instances \
 --image-id "$AMI" \
 --count 1 \
 --key-name ab2p \
---security-groups launch-wizard-2 \
---instance-type c1.medium \
---block-device-mappings '[{"DeviceName": "/dev/sda1","Ebs": {"VolumeSize": 10,"DeleteOnTermination": true,"VolumeType": "standard"}}]' \
+--security-groups ab2p \
+--instance-type c3.large \
+--instance-initiated-shutdown-behavior terminate \
 | sed -n -r '/InstanceId/ {s/.*:\s"([[:alnum:]-]+)".*/\1/;p}')
 
+#--block-device-mappings '[{"DeviceName": "/dev/sda1","Ebs": {"VolumeSize": 30,"DeleteOnTermination": true,"VolumeType": "standard"}}]' \
 echo "$INSTANCE_ID created"
 
 echo "Set trap to terminate instance on exit"

@@ -21,7 +21,7 @@ data Options = Options
      , _privoxyDir  :: FilePath
      , _webDir      :: FilePath
      , _taskFile    :: FilePath
-     , _cssDomain   :: String 
+     , _cssDomain   :: String
      , _forced      :: Bool
      }
 
@@ -52,9 +52,9 @@ options =
      ]
 
 parseOptions :: [String] -> IO (Options, [String])
-parseOptions argv = 
+parseOptions argv =
    case getOpt Permute options argv of
-      (opts,nonOpts,[]  ) -> 
+      (opts,nonOpts,[]  ) ->
                 case foldl (flip id) emptyOptions opts of
                         Options False "" _ "" _ _ -> writeError "Privoxy dir or task file should be specified.\n"
                         opts'@Options{_showVersion = True} -> return (opts', nonOpts)
@@ -63,20 +63,20 @@ parseOptions argv =
    where
         setDefaults opts@(Options _ (privoxyDir@(_:_)) "" _ _ _) = setDefaults opts{ _webDir = privoxyDir }
         setDefaults opts@(Options _ privoxyDir _ "" _ _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
-        setDefaults opts = opts  
+        setDefaults opts = opts
 
-versionText :: String 
+versionText :: String
 versionText = "adblock2privoxy version " ++ showVersion version
 
 writeError :: String -> IO a
 writeError msg = ioError $ userError $ msg ++ "\n" ++ usageInfo header options
-        where         
+        where
         header = versionText ++
                 "\nSee home page for more details and updates: http://projects.zubr.me/wiki/adblock2privoxy\n" ++
                 "Usage: adblock2privoxy [OPTION...] [URL...]"
 
 
-logOptions :: Options -> [String] 
+logOptions :: Options -> [String]
 logOptions options' = [
         startMark,
         "Privoxy path: " ++ _privoxyDir options',
@@ -94,25 +94,24 @@ endMark = "------- end ------"
 emptyOptions :: Options
 emptyOptions = Options False "" "" "" "" False
 
-        
+
 fillFromLog :: Options -> [String] -> Options
 fillFromLog existing lns = execState (sequence $ parseLogOptions <$> lns') existing
-   where 
+   where
    lns' = filter (not.null) $ takeWhile (/= endMark).dropWhile (/= startMark) $ lns
 
 parseLogOptions :: String -> State Options ()
 parseLogOptions text = do
     info <- get
-    let 
-        ifEmpty getter x = 
+    let
+        ifEmpty getter x =
                 let oldValue = getter info in
-                if null oldValue then x else oldValue 
+                if null oldValue then x else oldValue
         privoxyPathParser = (\x -> info{_privoxyDir = ifEmpty _privoxyDir x}) <$> (string "Privoxy path: " *> many1 anyChar)
         webPathParser = (\x -> info{_webDir = ifEmpty _webDir x}) <$> (string "Web path: " *> many1 anyChar)
         cssDomainParser = (\x -> info{_cssDomain = ifEmpty _cssDomain x}) <$> (string "CSS web server domain: " *> many1 anyChar)
-        stringParser = skipMany (char ' ') *> 
+        stringParser = skipMany (char ' ') *>
             (try privoxyPathParser <|> try webPathParser <|> cssDomainParser)
     case parse stringParser "" text of
         Left _ -> return ()
-        Right info' -> put info' 
-   
+        Right info' -> put info'

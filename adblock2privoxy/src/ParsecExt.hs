@@ -11,23 +11,23 @@ module ParsecExt (
 import Utils
 import Control.Applicative hiding (many)
 import Text.ParserCombinators.Parsec hiding ((<|>),State)
-import Control.Monad.Trans 
+import Control.Monad.Trans
 import Control.Monad.RWS
 import Control.Monad.State
 import Data.Maybe
-        
--- parser should consume some input to prevent infinite loop 
+
+-- parser should consume some input to prevent infinite loop
 manyCases :: (Monoid a, Monoid st) => Parser a -> StateParser st a
 manyCases p = do    acc <- get
                     put  $ Just mempty
-                    lift $ if isNothing acc 
-                              then return mempty 
+                    lift $ if isNothing acc
+                              then return mempty
                               else p
-                        
+
 oneCase :: (Monoid a, Monoid st) => Parser a -> StateParser st a
 oneCase p = do  acc <- get
                 put  $ Just mempty
-                lift $ if isNothing acc 
+                lift $ if isNothing acc
                           then p
                           else pzero
 
@@ -46,29 +46,29 @@ cases parsers =  evalStateT stateParser Nothing
             where stateParser =  do
                     input <- lift getInput
                     let boxedParser = (mapRWST.mapStateT) lookAhead $ casesParser mempty parsers
-                    (input', res) <- execRWST boxedParser () input  
+                    (input', res) <- execRWST boxedParser () input
                     lift (setInput input')
                     return res
-                 
-                                        
+
+
 casesParser :: forall r st.(Monoid r) => r -> [StateParser st r] -> CasesParser st r ()
 casesParser _ []                         = error "Empty parser list is not accepted"
 casesParser acc parsers@(parser:next) = do
         maybeRes <- lift (optionMaybeTry parser)
-        case maybeRes of 
+        case maybeRes of
             Nothing -> return ()
             Just res -> do
                 input <- lift.lift $ getInput
                 let acc' = acc <> res
-                if null input || null next 
+                if null input || null next
                         then do
                             modify (minList input) -- TODO: somehow use processed length to select min input
                             tell [acc']
-                        else do 
+                        else do
                             st <- lift get
                             lift (put Nothing)
                             (mapRWST.mapStateT) lookAhead $ casesParser acc' next
                             lift (put st)
-                unless (null input) $ casesParser acc' parsers                                      
-                                        
+                unless (null input) $ casesParser acc' parsers
+
 ------------------------------------------------------------------------------------------------

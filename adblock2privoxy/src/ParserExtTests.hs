@@ -23,8 +23,8 @@ parsersChain = square3 prefix mid suffix
         where -- all parsers except for last one should consume some input and give some output
             prefix = manyCases ((:[]) <$> (string "ab" <|> string "zz"))
             mid =    many1Cases $ (:[]) <$> letter            -- list of letters
-            suffix = many1Cases $ try $ many1 alphaNum  
-            
+            suffix = many1Cases $ try $ many1 alphaNum
+
 
 testParsecExt :: Either ParseError [([String], String, String)]
 testParsecExt =  parse (cases parsersChain <* string "$$") "x" "abebz12$$"
@@ -37,41 +37,41 @@ testParseMorse = parseMorse "......-...-..---"
 --------------------------------------------------------------------------------
 
 morseChars :: [(String, Char)]
-morseChars = [  (".-", 'A'), 
+morseChars = [  (".-", 'A'),
                 ("-...", 'B'),
-                ("-.-.", 'C'), 
+                ("-.-.", 'C'),
                 ("-..", 'D'),
-                (".", 'E'),   
+                (".", 'E'),
                 ("..-.", 'F'),
-                ("--.", 'G'), 
+                ("--.", 'G'),
                 ("....", 'H'),
-                ("..", 'I'),  
+                ("..", 'I'),
                 (".---", 'J'),
-                ("-.-", 'K'), 
+                ("-.-", 'K'),
                 (".-..", 'L'),
-                ("--", 'M'),  
+                ("--", 'M'),
                 ("-.", 'N'),
-                ("---", 'O'), 
+                ("---", 'O'),
                 (".--.", 'P'),
-                ("--.-", 'Q'),    
+                ("--.-", 'Q'),
                 (".-.", 'R'),
-                ("...", 'S'), 
+                ("...", 'S'),
                 ("-", 'T'),
-                ("..-", 'U'), 
+                ("..-", 'U'),
                 ("...-", 'V'),
-                (".--", 'W'), 
+                (".--", 'W'),
                 ("-..-", 'X'),
-                ("-.--", 'Y'),    
+                ("-.--", 'Y'),
                 ("--..", 'Z'),
-                ("-----", '0'),   
+                ("-----", '0'),
                 (".----", '1'),
-                ("..---", '2'),   
+                ("..---", '2'),
                 ("...--", '3'),
-                ("....-", '4'),   
+                ("....-", '4'),
                 (".....", '5'),
-                ("-....", '6'),   
+                ("-....", '6'),
                 ("--...", '7'),
-                ("---..", '8'),   
+                ("---..", '8'),
                 ("----.", '9')]
 
 morseCharCodes :: [String]
@@ -81,16 +81,16 @@ morseCharCodes = fst <$> morseChars
 encodeMorse :: String -> String
 encodeMorse s = join $ fst <$> catMaybes (code <$> s)
         where code c = find (\pair -> snd pair == c) morseChars
-        
+
 decodeMorse :: [String] -> String
 decodeMorse ss = snd <$> catMaybes (code <$> ss)
-        where code s = find (\pair -> fst pair == s) morseChars 
+        where code s = find (\pair -> fst pair == s) morseChars
 
 
 -- find possibilites to continue from a given prefix
 findMorseSteps :: String -> [String] -> [String]
 findMorseSteps prefix codes = case find (== prefix) codes of
-                            Nothing -> case filter (isPrefixOf prefix) codes of 
+                            Nothing -> case filter (isPrefixOf prefix) codes of
                                             [] -> []
                                             filtered ->    findMorseSteps (prefix ++ ".") filtered
                                                         ++ findMorseSteps (prefix ++ "-") filtered
@@ -106,19 +106,18 @@ morseParser pos = do     acc' <- get
                          let acc = fromMaybe "" acc'
                              candidates = filter (\x -> isPrefixOf acc x && acc /= x) morseCharCodes
                              steps = drop (length acc) <$> findMorseSteps acc candidates
-                             parser = morseStepParser steps    
+                             parser = morseStepParser steps
                          res <- lift parser
                          put (Just $ acc ++ res)
                          return (zipListM $ replicate pos "" ++ (res : repeat ""))
-                  
+
 
 morseParsers :: [StringStateParser (ZipListM String)]
 morseParsers = repeat morseParser <*> [0 ..]
 
 parseMorse :: String -> Either ParseError [String]
 parseMorse s = (fmap.fmap) postProcess $ parseMorseRaw "x" s
-            where 
-            parseMorseRaw =  parse (cases morseParsers) 
-            postProcess = decodeMorse.toLists 
-            toLists = takeWhile (not . null) . getZipListM 
-            
+            where
+            parseMorseRaw =  parse (cases morseParsers)
+            postProcess = decodeMorse.toLists
+            toLists = takeWhile (not . null) . getZipListM

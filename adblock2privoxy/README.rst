@@ -1,5 +1,5 @@
 ===============
-Adblock2Privoxy 
+Adblock2Privoxy
 ===============
 
 **Convert adblock config files to privoxy format**
@@ -15,10 +15,10 @@ Objectives
 AdBlock Plus browser plugin has great block lists provided by big community,
 but it is client software and cannot work on a server as a proxy.
 
-Privoxy proxy has good potential to block ads at server side, 
+Privoxy proxy has good potential to block ads at server side,
 but it experiences acute shortage of updated block lists.
 
-This software converts adblock lists to privoxy config files format.   
+This software converts adblock lists to privoxy config files format.
 
 Almost all adblock features are supported including
 
@@ -34,31 +34,31 @@ Almost all adblock features are supported including
 
   * Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
   * Unsupported: collapse, background, xbl, ping and dtd
-  
+
 Tested with privoxy version 3.0.21.
 Element hiding feature requires a webserver to serve CSS files. See Nginx and Apache config examples provided.
 
 Description
 -----------
 
-Adblock files specified by [URL]... are converted to privoxy config files and auxiliarly elemHide CSS files. Local file names and http(s) addresses are accepted as URLs. 
+Adblock files specified by [URL]... are converted to privoxy config files and auxiliarly elemHide CSS files. Local file names and http(s) addresses are accepted as URLs.
 
-If no source URLs are specified, task file is used to determine sources: previously processed sources are processed again if any of them is expired. Nothing is done if all sources in the task file are up to date. 
+If no source URLs are specified, task file is used to determine sources: previously processed sources are processed again if any of them is expired. Nothing is done if all sources in the task file are up to date.
 
 Options
 -------
-  
-  -v         --version           
+
+  -v         --version
       Show version number
-  -p PATH    --privoxyDir=PATH    
+  -p PATH    --privoxyDir=PATH
       Privoxy config output path
-  -w PATH    --webDir=PATH       
+  -w PATH    --webDir=PATH
       Css files output path
-  -d DOMAIN  --domainCSS=DOMAIN   
+  -d DOMAIN  --domainCSS=DOMAIN
       Domain of CSS web server (required for Element Hide functionality)
-  -t PATH    --taskFile=PATH     
+  -t PATH    --taskFile=PATH
       Path to task file containing urls to process and options.
-  -f         --forced            
+  -f         --forced
       Run even if no sources are expired
 
 If taskFile is not specified explicilty, [privoxyDir]/ab2p.task is used.
@@ -67,9 +67,9 @@ If task file exists and privoxyDir, webDir or domainCSS is not specified, corres
 
 If webDir is not specified (and cannot be taken from task file), privoxyDir value is used for webDir.
 
-If domainCSS is not specified (and cannot be taken from task file), Element Hide functionality become disabled (and no webserver is needed). 
+If domainCSS is not specified (and cannot be taken from task file), Element Hide functionality become disabled (and no webserver is needed).
 
-domainCSS can contain just IP address if no CSS web server has no associated domain.  
+domainCSS can contain just IP address if no CSS web server has no associated domain.
 
 Usage
 -----
@@ -84,22 +84,22 @@ Example of subsequent runs::
 
 The app generates following files
 
-	* privoxyDir: 
+	* privoxyDir:
 
 		* ab2p.system.action
 		* ab2p.action
 		* ab2p.system.filter
 		* ab2p.filter
 
-	* webDir: 
+	* webDir:
 
 		* ab2p.common.css
 		* ab2p.css
-		* [lot of directories for all levels of domain names] 
+		* [lot of directories for all levels of domain names]
 
 	* taskFile:
 
-    * special file containing execution details. It can be reused to update privoxy config from same sources with same options. 
+    * special file containing execution details. It can be reused to update privoxy config from same sources with same options.
 
 How to apply results
 --------------------
@@ -122,8 +122,8 @@ How to apply results
             #ab2p css domain name (optional, should be equal to domainCSS parameter)
             server_name www.example.com;
 
-            #root = webDir parameter value 
-            root /var/www/privoxy; 
+            #root = webDir parameter value
+            root /var/www/privoxy;
 
             location ~ ^/[^/.]+\..+/ab2p.css$ {
               	# first reverse domain names order
@@ -134,7 +134,7 @@ How to apply results
               	# then try to get CSS for current domain
               	# if it is unavailable - get CSS for parent domain
               	try_files $uri $1ab2p.css;
-            } 
+            }
     }
 
 
@@ -142,9 +142,9 @@ How to apply results
 
     <VirtualHost *:80>
             #ab2p css domain name (optional, should be equal to domainCSS parameter)
-            ServerName www.example.com 
+            ServerName www.example.com
 
-            #root = webDir parameter value 
+            #root = webDir parameter value
             DocumentRoot /var/www/privoxy
 
 

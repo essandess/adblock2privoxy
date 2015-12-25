@@ -1,19 +1,15 @@
 #!/bin/bash
-echo "prepare rpm build:"
+echo "prepare build:"
 echo "remove temp files"
 rm -rf ../../adblock2privoxy/.dist-buildwrapper
+rm -rf ../../adblock2privoxy/.stack-work
+rm -rf ../../adblock2privoxy/dist
 
-echo "start RPM build (see fedora*/build.log files for details)"
-parallel ::: \
-'./run_aws_build.sh ami-1eb35469 fedora "../../adblock2privoxy" "distribution/makeFedoraRpm" fedora20_64' \
-'./run_aws_build.sh ami-0bac577c fedora "../../adblock2privoxy" "distribution/makeFedoraRpm" fedora20_i386' 
-
-echo "prepare deb build:"
-echo "copy build script to bin directory"
-cp ../../adblock2privoxy/distribution/makeDebFromRpm.sh fedora20_i386/
-cp ../../adblock2privoxy/distribution/makeDebFromRpm.sh fedora20_64/
-
-echo "start DEB build (see debian*/build.log files for details)"
-parallel ::: \
-'./run_aws_build.sh ami-e7e66a90 admin "fedora20_64" "makeDebFromRpm" debian7_64' \
-'./run_aws_build.sh ami-1be06c6c admin "fedora20_i386" "makeDebFromRpm" debian7_i386' 
+echo "start build (see */build.log files for details)"
+parallel --max-procs 0 ::: \
+'./run_aws_build.sh ami-e0efab88 admin  "../../adblock2privoxy" "distribution/makeDeb" debian7_64' \
+'./run_aws_build.sh ami-8b9a63e0 admin  "../../adblock2privoxy" "distribution/makeDeb" debian8_64'
+#'./run_aws_build.sh ami-032a5566 fedora "../../adblock2privoxy" "distribution/makeRpm" fedora22_64' \
+#'./run_aws_build.sh ami-00443d6a fedora "../../adblock2privoxy" "distribution/makeRpm" fedora23_64' \
+#'./run_aws_build.sh ami-02dc4c6b ec2-user "../../adblock2privoxy" "distribution/makeRpm" centos6_64' \
+#'./run_aws_build.sh ami-61bbf104 centos "../../adblock2privoxy" "distribution/makeRpm" centos7_64' \

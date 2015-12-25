@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="net.sf.eclipsefp.haskell.debug.core.internal.launch.ExecutableHaskellLaunchDelegate">
-<stringAttribute key="EXTRA_ARGUMENTS" value="-p ../.out/privoxy -w ../.out/web  -d tst.zu ../.data/test.txt"/>
+<stringAttribute key="EXTRA_ARGUMENTS" value="-p ../.out/privoxy -w ../.out/web  -d tst.zu /home/alexey/Downloads/easylist.txt"/>
 <stringAttribute key="PROJECT_NAME" value="adblock2privoxy"/>
 <stringAttribute key="STANZA" value="adblock2privoxy"/>
 <stringAttribute key="WORKING_DIRECTORY" value="/home/alexey/Projects/adblock2privoxy/adblock2privoxy"/>

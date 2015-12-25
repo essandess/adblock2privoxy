@@ -1,17 +1,17 @@
 name:                adblock2privoxy-utils
-version:             1.0.0
+version:             1.4.0
 cabal-version:       >= 1.10
 build-type:          Simple
-tested-with:         GHC==7.8.3
+tested-with:         GHC==7.10.2
 author:              Alexey Zubritsky <adblock2privoxy@zubr.me>
 homepage:            https://projects.zubr.me/wiki/adblock2privoxy
 category:            Web
 license:             GPL-3
 license-file:        LICENSE
 synopsis:            Helper utilities and scripts for adblock2privoxy project
-description:         
+description:
         * Creates config files for PRM packaging using values from cabal file
-        * Creates man help files from README 
+        * Creates man help files from README
         .
         This package is only needed to pubish new releases of adblock2privoxy in hackage
         .
@@ -25,7 +25,7 @@ executable adblock2privoxy-utils
   default-language: Haskell2010
   default-extensions:
                    FlexibleInstances
-  build-depends:   
+  build-depends:
                    base >= 4 && < 5,
                    pandoc,
                    Cabal >=1.6,
@@ -35,8 +35,15 @@ executable adblock2privoxy-utils
                    time,
                    old-locale,
                    MissingH
+  other-modules:
+                   CabalTemplate
+                   DebControl
+                   ManPage
+                   RpmSpec
+                   RootPath
 
-source-repository head
+source-repository this
   type:      git
   location:  ​http://projects.zubr.me/adblock2privoxy.git
   subdir:    adblock2privoxy-utils
+  tag:       1.4.0

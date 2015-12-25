@@ -3,7 +3,6 @@ import  {-# SOURCE #-}  UrlBlocker
 import Paths_adblock2privoxy
 import System.FilePath ((</>))
 import Data.String.Utils (replace, startswith)
-import Control.Applicative
 
 blockCss, ab2pPrefix, actionsFilePrefix, filtersFilePrefix :: String
 blockCss = "{display:none!important;visibility:hidden!important}"
@@ -12,22 +11,22 @@ actionsFilePrefix = "#AbBlock generated actions -- don't edit --"
 filtersFilePrefix = "#AbBlock generated filters -- don't edit --"
 
 terminalActionSwitch :: Bool -> BlockMethod -> String
-terminalActionSwitch True Request = 
+terminalActionSwitch True Request =
  "+block{ adblock rules } \\\n\
  \+server-header-tagger{ab2p-block-s}"
-terminalActionSwitch False Request = 
+terminalActionSwitch False Request =
  "-block \\\n\
  \-server-header-tagger{ab2p-block-s} \\\n\
  \+server-header-tagger{ab2p-unblock-d} \\\n\
  \+server-header-tagger{ab2p-unblock-s} \\\n\
  \+client-header-tagger{ab2b-unblock-u}"
-terminalActionSwitch True Xframe = "+server-header-filter{ab2p-xframe-filter}" 
-terminalActionSwitch False Xframe = "-server-header-filter{ab2p-xframe-filter}" 
-terminalActionSwitch False Elem = "-filter{ab2p-elemhide-filter}" 
-terminalActionSwitch True Xpopup = "+filter{ab2p-popup-filter}" 
-terminalActionSwitch False Xpopup = "-filter{ab2p-popup-filter}" 
+terminalActionSwitch True Xframe = "+server-header-filter{ab2p-xframe-filter}"
+terminalActionSwitch False Xframe = "-server-header-filter{ab2p-xframe-filter}"
+terminalActionSwitch False Elem = "-filter{ab2p-elemhide-filter}"
+terminalActionSwitch True Xpopup = "+filter{ab2p-popup-filter}"
+terminalActionSwitch False Xpopup = "-filter{ab2p-popup-filter}"
 terminalActionSwitch True Dnt = "+add-header{DNT: 1}"
-terminalActionSwitch _ _ = "" 
+terminalActionSwitch _ _ = ""
 
 writeTemplateFiles :: String -> String -> IO ()
 writeTemplateFiles outDir cssDomain = do
@@ -39,9 +38,9 @@ writeTemplateFiles outDir cssDomain = do
                 lns = lines content
                 replace' line (from, to) = replace from to line
                 filterLine line
-                        | null cssDomain && startswith "[?CSS_DOMAIN]" line = "" 
-                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[CSS_DOMAIN]", cssDomain)] 
-                                  
+                        | null cssDomain && startswith "[?CSS_DOMAIN]" line = ""
+                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[CSS_DOMAIN]", cssDomain)]
+
         copySystem file = do
                 dataDir <- getDataDir
                 content <- readFile $ dataDir  </> "templates" </> file

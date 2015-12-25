@@ -1,17 +1,15 @@
 Name:    adblock2privoxy
-Version: 1.3.3
+Version: 1.4.0
 Release: 1%{?dist}
 Summary: Convert adblock config files to privoxy format
 
 License: GPL-3
 URL:     https://projects.zubr.me/wiki/adblock2privoxy
-Source0: http://hackage.haskell.org/package/adblock2privoxy-1.3.3/adblock2privoxy-1.3.3.tar.gz
+Source0: http://hackage.haskell.org/package/adblock2privoxy-1.4.0/adblock2privoxy-1.4.0.tar.gz
 Vendor:  Alexey Zubritskiy <adblock2privoxy@zubr.me>
 Group:   Web
 
-BuildRequires:  ghc-Cabal-devel
-BuildRequires:  ghc-rpm-macros
-BuildRequires:  cabal-install
+BuildRequires:  stack
 BuildRequires:  zlib-devel
 
 %description
@@ -40,22 +38,22 @@ document, elemhide, other, popup, third-party, domain=..., match-case, donottrac
 
 Unsupported: collapse, background, xbl, ping and dtd
 
+%define debug_package %{nil}
 
 %prep
 %setup -q -T -D -n root
-cabal update
-cabal install --user --only-dependencies --enable-optimization=2
+stack setup
+stack install cabal-install
 
 
 %build
-%global cabal_configure_options --user
-%global ghc_user_conf 1
-%global ghc_without_dynamic 1
-%ghc_bin_build
+stack build --only-dependencies
+stack exec --no-ghc-package-path runhaskell -- Setup.hs configure --user --package-db=clear --package-db=global --package-db="$(stack path --snapshot-pkg-db)" --package-db="$(stack path --local-pkg-db)" --prefix=%{_prefix} --libdir=%{_libdir} --docdir=%{?_pkgdocdir}%{!?_pkgdocdir:%{_docdir}/%{name}-%{version}} --libsubdir='$compiler/$pkgid' --datasubdir='$pkgid'
+stack exec --no-ghc-package-path runhaskell -- Setup.hs build
 
 
 %install
-%ghc_bin_install
+stack exec --no-ghc-package-path runhaskell -- Setup.hs copy --destdir=%{buildroot} -v
 cp -r man %{buildroot}%{_mandir}
 
 
@@ -67,5 +65,5 @@ cp -r man %{buildroot}%{_mandir}
 
 
 %changelog
-* Fri Feb 20 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.3.3
-- Rpm release for new version (generated from cabal file)
+* Thu Dec 24 2015 Alexey Zubritskiy <adblock2privoxy@zubr.me> - 1.4.0
+- Rpm release for version 1.4.0 (generated from cabal file)

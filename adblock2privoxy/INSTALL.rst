@@ -1,5 +1,5 @@
 ============================
-Adblock2Privoxy installation 
+Adblock2Privoxy installation
 ============================
 
 From binary package
@@ -11,30 +11,18 @@ There are packages for various systems available at `downloads page <http://proj
 
 From sources
 ------------
-You can install adblock2privoxy from sources if there is no binary package for your system. 
+You can install adblock2privoxy from sources if there is no binary package for your system.
 
-1. Ensure you have Haskell compiler and Cabal 
+1. Ensure you have Haskell compiler and Cabal
 
-	* For Windows: you can download `MinGHC installer <https://s3.amazonaws.com/download.fpcomplete.com/minghc/minghc-7.8.3.exe>`_ (It includes GHC 7.8.3 compiler and Cabal)
-	* From Linux: Install Haskell platform from your distributive repository or follow `the guide <http://www.stackage.org/install>`_
-2. Obtain sources. You can 
+	* Install `Stack <http://docs.haskellstack.org/en/stable/install_and_upgrade.html>`_ for your platform
+2. Run::
 
-	* Either download and extract sources from `Hackage <http://hackage.haskell.org/package/adblock2privoxy>`_
-	* Or clone git repository with `git clone http://projects.zubr.me/adblock2privoxy.git`
-
-3. Open console and go to the sources folder  
-4. Run:: 
-
-	cabal update
-	cabal install --user --only-dependencies --enable-optimization=2
-	runhaskell Setup.hs configure --user --enable-optimization=2 
-	runhaskell Setup.hs build
-	runhaskell Setup.hs install
+	stack setup
+	stack install adblock2privoxy
 
 Packaging
 ---------
-You can create your own binary package for adblock2privoxy. There are two ways: 
+You can create your own binary package for adblock2privoxy.
 
-	* Use scripts from `distribution` folder
-	* Or do the same actions as for installing from sources, but use `--prefix=[package directory]` option on configure step. After that you put content of [package directory] to package or archive. 
-
+	* Use scripts from `distribution` folder for your platform.

@@ -8,3 +8,4 @@ sandbox/
 SourceGraph/
 
 RemoteSystemsTempFiles/
+.stack-work/

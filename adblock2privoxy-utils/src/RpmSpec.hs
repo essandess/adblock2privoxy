@@ -1,17 +1,16 @@
 
 module RpmSpec (
         createRpmSpec
-) 
+)
 where
-import Control.Applicative 
-import Data.String.Utils 
+import Data.String.Utils
 import Control.Monad
 import Distribution.PackageDescription
 import Distribution.Package
 import CabalTemplate
 import Data.Time.Clock
 import Data.Time.Format
-import System.Locale
+import RootPath
 
 
 createRpmSpec:: Bool -> PackageDescription -> IO ()
@@ -20,12 +19,12 @@ createRpmSpec verbose cabalMeta = do
         let rpm = expandTemplate (template now) cabalMeta
         writeFile resultFile rpm
         when verbose $ putStrLn $ resultFile ++ " file created"
-        
+
 resultFile :: String
-resultFile = "distribution/rpmbuild/SPECS/adblock2privoxy.spec"
+resultFile = rootPath ++ "distribution/rpmbuild/SPECS/adblock2privoxy.spec"
 
 template :: UTCTime -> [[CabalValue]]
-template now = [] 
+template now = []
         ## "Name:    " # text.pkgName.package
         ## "Version: " # text.pkgVersion.package
         ## "Release: 1%{?dist}"
@@ -33,53 +32,54 @@ template now = []
         ## ""
         ## "License: " # text.license
         ## "URL:     " # homepage
-        ## "Source0: http://hackage.haskell.org/package/" 
-                # text.pkgName.package # "-" # text.pkgVersion.package # "/" 
+        ## "Source0: http://hackage.haskell.org/package/"
+                # text.pkgName.package # "-" # text.pkgVersion.package # "/"
                 # text.pkgName.package # "-" # text.pkgVersion.package # ".tar.gz"
         ## "Vendor:  " # maintainer
         ## "Group:   " # category
         ## ""
-        ## "BuildRequires:  ghc-Cabal-devel"
-        ## "BuildRequires:  ghc-rpm-macros"
-        ## "BuildRequires:  cabal-install"
+        ## "BuildRequires:  stack"
         ## "BuildRequires:  zlib-devel"
+        -- "BuildRequires:  ghc-rpm-macros"
+        -- ## "BuildRequires:  cabal-install"
+        -- ## "BuildRequires:  zlib-devel"
         ## ""
         ## "%description"
         ## description
         ## ""
+        ## "%define debug_package %{nil}"
         ## ""
         ## "%prep"
         ## "%setup -q -T -D -n root"
-        ## "cabal update"
-        ## "cabal install --user --only-dependencies --enable-optimization=2"
+        ## "stack setup"
+        ## "stack install cabal-install"
         ## ""
         ## ""
         ## "%build"
-        ## "%global cabal_configure_options --user"
-        ## "%global ghc_user_conf 1"
-        ## "%global ghc_without_dynamic 1"
-        ## "%ghc_bin_build"
+        ## "stack build --only-dependencies"
+        ## "stack exec --no-ghc-package-path runhaskell -- Setup.hs configure --user " #
+           "--package-db=clear --package-db=global --package-db=\"$(stack path --snapshot-pkg-db)\" --package-db=\"$(stack path --local-pkg-db)\" " #
+           "--prefix=%{_prefix} --libdir=%{_libdir} --docdir=%{?_pkgdocdir}%{!?_pkgdocdir:%{_docdir}/%{name}-%{version}} --libsubdir='$compiler/$pkgid' --datasubdir='$pkgid'"
+        ## "stack exec --no-ghc-package-path runhaskell -- Setup.hs build"
         ## ""
         ## ""
         ## "%install"
-        ## "%ghc_bin_install"
-        ## "cp -r man %{buildroot}%{_mandir}" 
+        ## "stack exec --no-ghc-package-path runhaskell -- Setup.hs copy --destdir=%{buildroot} -v"
+        ## "cp -r man %{buildroot}%{_mandir}"
         ## ""
         ## ""
         ## "%files"
         ## "%doc %{_mandir}"
-        ## "%doc " # (licenseFile) # " " 
-                   # (unwords <$> filter (not.startswith "man") 
-                                 .filter (not.startswith "distribution") 
+        ## "%doc " # (unwords <$> licenseFiles) # " "
+                   # (unwords <$> filter (not.startswith "man")
+                                 .filter (not.startswith "distribution")
+                                 .filter (not.startswith "stack")
                                  . extraSrcFiles)
         ## "%{_bindir}/%{name}"
         ## "%{_datadir}/%{name}-%{version}"
         ## ""
         ## ""
-        ## "%changelog" 
-        ## "* " # formatTime defaultTimeLocale "%a %b %d %Y" now 
+        ## "%changelog"
+        ## "* " # formatTime defaultTimeLocale "%a %b %d %Y" now
                 # " " # maintainer # " - " # text.pkgVersion.package
-        ## "- Rpm release for new version (generated from cabal file)"
-
-
-
+        ## "- Rpm release for version " # text.pkgVersion.package #" (generated from cabal file)"

@@ -3,11 +3,11 @@ module Statistics (
 )where
 import qualified Data.Map as Map
 import InputParser
-import Data.Maybe 
-import Control.Applicative 
+import Data.Maybe
+import Control.Applicative
 import Control.Monad.State
 
-type Stat = Map.Map String Int 
+type Stat = Map.Map String Int
 
 collectStat :: [Line] -> [String]
 collectStat = liftA resultLine . Map.toAscList . foldr getStat Map.empty
@@ -22,12 +22,12 @@ isJustFilled Nothing = False
 isJustFilled (Just list) = not.null $ list
 
 
-getStat :: Line -> Stat-> Stat 
+getStat :: Line -> Stat-> Stat
 getStat  (Line _ Comment {} ) = increment "Comments"
 getStat  (Line _ Error {}) = increment "Errors"
 getStat  (Line _ ElementHide {}) = increment "Elements hiding rules"
 getStat  (Line _ (RequestBlock policy _ (RequestOptions _ thirdParty domains _ _ _ _ _))) = execState stateState
-    where 
+    where
     incrementState = modify . increment
     stateState = do
         incrementState "Request block rules total"
@@ -35,8 +35,3 @@ getStat  (Line _ (RequestBlock policy _ (RequestOptions _ thirdParty domains _ _
         when (isJust thirdParty) $ incrementState "Rules with third party option"
         when ((not.null._negative $ domains) || (isJustFilled . _positive $ domains)) $ incrementState "Request block rules with domain option"
         when ((not.null._negative $ domains) || (isJustFilled . _positive $ domains)) $ incrementState "Request block rules with request type options"
-        
-
-       
-       
-       
