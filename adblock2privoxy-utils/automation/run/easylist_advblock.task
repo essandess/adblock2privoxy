@@ -1,0 +1,51 @@
+----- source -----
+Title: EasyList
+Url: https://easylist-downloads.adblockplus.org/easylist.txt
+Last modified: 30 Dec 2015 12:30 UTC
+Expires: 96 hours
+Version: 201512301230
+License: https://easylist-downloads.adblockplus.org/COPYING
+Homepage: https://easylist.adblockplus.org/
+----- source -----
+Title: RU AdList
+Url: https://easylist-downloads.adblockplus.org/advblock.txt
+Last modified: 30 Dec 2015 12:30 UTC
+Expires: 72 hours
+Version: 201512301230
+License: http://creativecommons.org/licenses/by/3.0/
+Homepage: https://forums.lanik.us/viewforum.php?f=102
+------- end ------
+
+----- options -----
+Privoxy path: out
+Web path: out
+CSS web server domain: www.example.com
+------- end ------
+
+Comments: 292
+Elements hiding rules: 30504
+Errors: 19
+Request block rules for exception: 4192
+Request block rules total: 28006
+Request block rules with domain option: 2269
+Request block rules with request type options: 2269
+Rules with third party option: 7150
+ERROR: /http://[a-zA-Z0-9]+\.[a-z]+\/.*(?:[!"#$%&'()*+,:;<=>?@/\^_`{|}~-]).*[a-zA-Z0-9]+/$script,third-party,domain=keezmovies.com|redtube.com|tube8.com|tube8.es|tube8.fr|www.pornhub.com|youporn.com (easylist.txt: 35632) - Record type detection failed
+ERROR: @@.gif#$domain=9tutorials.com|aseanlegacy.net|budget101.com|cbox.ws|danydanielrt.com|dx-tv.com|eventosppv.me|funniermoments.com|ibmmainframeforum.com|loadlum.com|onlinemoviesfreee.com|premiumleecher.com|remo-xp.com|showsport-tv.com|superplatyna.com|turktorrent.cc|tv-porinternet.com.mx|tvrex.altervista.org|ver-flv.com|verdirectotv.com|wallpapersimages.co.uk|wowebook.org|wrestlingtalk.org|wwe2day.tv|xup.in (easylist.txt: 49311) - Record type detection failed
+ERROR: @@.gif#$image,domain=360haven.com (easylist.txt: 49312) - Record type detection failed
+ERROR: @@.ico#$domain=xup.in|xup.to (easylist.txt: 49316) - Record type detection failed
+ERROR: @@.jpg#$domain=apkone.net|bicimotosargentina.com|calcularindemnizacion.es|cinema2satu.net|desionlinetheater.com|dragoart.com|dvdfullfree.com|filmovizija.in|firsttube.co|haxlog.com|idevnote.com|kshowes.net|lag10.net|legionpeliculas.org|livrosdoexilado.org|lomeutec.com|mac2sell.net|masfuertequeelhierro.com|max-deportv.info|max-deportv.net|megacineonline.biz|mimaletamusical.blogspot.com.ar|movie1k.net|mugiwaranofansub.blogspot.com.ar|musicacelestial.net|mypapercraft.net|pcgames-download.net|play-old-pc-games.com|premiumgeneratorlink.com|rtube.de|software4all-now.blogspot.co.uk|tv-msn.com|uploadlw.com|wallpapersimages.co.uk|wrestlingtalk.org (easylist.txt: 49321) - Record type detection failed
+ERROR: @@.png#$domain=300mblink.com|amigosdelamili.com|android-zone.org|anime2enjoy.com|animesubita.info|anizm.com|anonytext.tk|backin.net|best-bitcoin-faucet.eu|best-free-faucet.eu|better-explorer.com|bitcofree.com|bitcoin-best-faucet.eu|bitcoin-cloud.eu|bitcoin-faucet.eu|bitcoin-free-faucet.eu|calcularindemnizacion.es|chrissmoove.com|cleodesktop.com|compartiendofull.org|debrastagi.com|debridit.com|debridx.com|dksoftwares4u.blogspot.co.uk|docpaste.com|dragoart.com|fcportables.com|free-bitcoin-faucet.eu|gameopc.blogspot.com.ar|get-bitcoins-free.eu|get-free-bitcoin.eu|go4up.com|hackintosh.zone|hogarutil.com|hostyd.com|hubturkey.net|idevnote.com|ilive.to|iptvlinks.com|kshowes.net|kwikupload.com|legionprogramas.org|lordpyrak.net|maamp3.com|magesy.be|mamahd.com|marketmilitia.org|mastertoons.com|mediaplaybox.com|megacineonline.net|minecraft-forum.net|mintmovies.net|mpc-g.com|mrjuegosdroid.co.vu|mundoprogramas.net|myksn.net|nbahd.com|newxxxvideosupdate.blogspot.com.ar|nornar.com|noticiasautomotivas.com.br|omaredomex.org|oploverz.net|osdarlings.com|peliculas.online-latino.com|pes-patch.com|pocosmegashdd.com|portalzuca.com|portalzuca.net|premium4.us|puromarketing.com|realidadscans.org|scriptnulled.eu|secureupload.eu|seriesbang.net|skidrowcrack.com|stream2watch.me|stream4free.eu|streamlive.to|superanimes.com|superplatyna.com|tamercome.blogspot.co.uk|techingspot.blogspot.in|trackitonline.ru|trizone91.com|turkdown.com|tv-msn.com|tvenvivocrackmastersamm.blogspot.com.ar|ulto.ga|unlockpwd.com|uploadex.com|url4u.org|vencko.net|whatsapprb.blogspot.com|win-free-bitcoins.eu|wowhq.eu|wrestlingtalk.org (easylist.txt: 49328) - Record type detection failed
+ERROR: @@.png?*#$domain=mypapercraft.net|xlocker.net (easylist.txt: 49329) - Record type detection failed
+ERROR: @@||blogspot.com^*#-$image,domain=cricket-365.pw|cricpower.com|pirlotv.tv (easylist.txt: 49540) - Record type detection failed
+ERROR: @@||free.smsmarkaz.urdupoint.com^*#-$image (easylist.txt: 49721) - Record type detection failed
+ERROR: @@||i.imgur.com^*#.$image,domain=newmusicforpeople.org (easylist.txt: 49808) - Record type detection failed
+ERROR: @@||linkcrypt.ws/image/*#$image (easylist.txt: 49879) - Record type detection failed
+ERROR: @@||media.eventhubs.com/images/*#$image (easylist.txt: 49920) - Record type detection failed
+ERROR: @@||mzstatic.com^*.jpg#$image,domain=newmusicforpeople.org (easylist.txt: 49978) - Record type detection failed
+ERROR: @@||seekingalpha.com/adsframe.html#que=$subdocument (easylist.txt: 50140) - Record type detection failed
+ERROR: @@||teenidols4you.com^*#-$image (easylist.txt: 50198) - Record type detection failed
+ERROR: @@||youwatch.org^*#$image (easylist.txt: 50325) - Record type detection failed
+ERROR: @@.jpg#$domain=hellojav.com|hentaienespañol.net|palaotog.net (easylist.txt: 51128) - Record type detection failed
+ERROR: @@.png#$domain=indiangilma.com|lfporn.com|thisav.com|you-fap.com|youfreeporntube.com|youngmodelsclub.net (easylist.txt: 51129) - Record type detection failed
+ERROR: @@#$image,domain=cnews.ru|free-send.ru|ivbt.ru|lostfilmonline.tv (advblock.txt: 7499) - Record type detection failed
