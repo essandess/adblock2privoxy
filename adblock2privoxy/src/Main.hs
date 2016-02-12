@@ -14,6 +14,7 @@ import Network.URI
 import System.Directory
 import System.IO
 import Network
+import GHC.IO.Encoding
 
 getFileContent :: String -> IO String
 getFileContent url = do
@@ -56,6 +57,9 @@ processSources options taskFile sources = do
 
 main::IO()
 main =  do
+        setLocaleEncoding utf8
+        setFileSystemEncoding utf8
+        setForeignEncoding utf8
         now <- getCurrentTime
         args <- getArgs
         (options@(Options printVersion _ _ taskFile _ forced), urls) <- parseOptions args

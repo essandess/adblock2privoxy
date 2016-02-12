@@ -33,7 +33,7 @@ writeTemplateFiles outDir cssDomain = do
         copySystem "ab2p.system.action"
         copySystem "ab2p.system.filter"
         where
-        filterDomain content = unlines $ filterLine <$> lns
+        filterDomain content = unlines . filter (not . null) $ filterLine <$> lns
                 where
                 lns = lines content
                 replace' line (from, to) = replace from to line

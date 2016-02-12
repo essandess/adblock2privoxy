@@ -33,6 +33,10 @@ MKDIR "%prefix%"
 "%stack%" exec --no-ghc-package-path runhaskell -- Setup.hs configure --user --prefix="%prefix%" --package-db=clear --package-db=global --package-db="%snapshotdb%" --package-db="%localdb%" 
 "%stack%" exec --no-ghc-package-path runhaskell -- Setup.hs build
 "%stack%" exec --no-ghc-package-path runhaskell -- Setup.hs install
+
+cd "%prefix%\doc\*windows*\adblock2privoxy*"
+copy "%startpath%\README.rst" .
+copy "%startpath%\INSTALL.rst" .
 CD "%prefix%"
 
 ECHO Build is done. The result is in current folder

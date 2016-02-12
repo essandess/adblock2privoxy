@@ -1,5 +1,5 @@
 Package:         adblock2privoxy
-Version:         1.4.1
+Version:         1.4.2
 Depends:         libgmp10
 Architecture:    #ARCH#
 Maintainer:      Alexey Zubritskiy <adblock2privoxy@zubr.me>

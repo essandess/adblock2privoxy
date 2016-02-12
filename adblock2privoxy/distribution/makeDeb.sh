@@ -40,8 +40,8 @@ mkdir -p $initialDir/result
 dpkg-deb -b distribution/debbuild $initialDir/result
 cd  $initialDir/result
 echo "rename result"
-version=${cat /etc/debian_version}
-find . -name '*.deb' -exec sh -c 'mv "$0" "${0%.deb}.debian$version.deb"' {} \;
+version=$(lsb_release -sr)
+find . -name '*.deb' -exec sh -c 'mv "$0" "${0%.deb}.debian_$version.deb"' {} \;
 
 echo "Build is done."
 

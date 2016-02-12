@@ -1,8 +1,8 @@
 name:                adblock2privoxy-utils
-version:             1.4.1
+version:             1.4.2
 cabal-version:       >= 1.10
 build-type:          Simple
-tested-with:         GHC==7.10.2
+tested-with:         GHC==7.10.3
 author:              Alexey Zubritsky <adblock2privoxy@zubr.me>
 homepage:            https://projects.zubr.me/wiki/adblock2privoxy
 category:            Web
@@ -46,4 +46,4 @@ source-repository this
   type:      git
   location:  ​http://projects.zubr.me/adblock2privoxy.git
   subdir:    adblock2privoxy-utils
-  tag:       1.4.1
+  tag:       1.4.2
