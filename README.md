@@ -9,6 +9,12 @@ This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock
 adblock2privoxy [OPTION...] [URL...]
 ```
 
+The files in the example `privoxy` and `css` directories are created with the command:
+
+```
+stack exec adblock2privoxy -- -p ./privoxy -w ./css -d 10.0.1.3:8119 ./easylist/*.txt
+```
+
 ## Objectives
 AdBlock Plus browser plugin has great block lists provided by big community, but it is client software and cannot work on a server as a proxy.
 
