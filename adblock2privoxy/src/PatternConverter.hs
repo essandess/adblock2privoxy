@@ -60,20 +60,21 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                                 _                  -> replaceQuery start other (bindStart == None && host == "")
                               where
                                 replaceQuery c cs openStart = replaceFirst c openStart ++ (join . map replaceWildcard $ cs) ++ queryEnd
-                                replaceFirst '*' _ = ".*"
+                                {- http://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html -}
+                                replaceFirst '*' _ = "(*PRUNE).*?"
                                 replaceFirst c openStart
                                     | c == '/' || c == '^' = if openStart
-                                                             then "(.*" ++ replaceWildcard c ++ ")?"
+                                                             then "(?:(*PRUNE).*?" ++ replaceWildcard c ++ ")?"
                                                              else ""
                                     | otherwise            = if openStart
-                                                             then ".*" ++ replaceWildcard c
+                                                             then "(*PRUNE).*?" ++ replaceWildcard c
                                                              else replaceWildcard c
 
                                 queryEnd = if bindEnd == None then "" else "$"
 
                                 replaceWildcard c
                                     | c == '^'         = "[^\\w%.-]"
-                                    | c == '*'         = ".*"
+                                    | c == '*'         = "(*PRUNE).*?"
                                     | c `elem` special = '\\' : [c]
                                     | otherwise        = [c]
                                     where special = "?$.+[]{}()\\|" -- also ^ and * are special
