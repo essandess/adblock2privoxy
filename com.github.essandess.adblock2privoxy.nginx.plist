@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+"http://www.apple.com/DTDs/PropertyList-1.0.dtd" >
+<plist version='1.0'>
+<dict>
+<key>Label</key><string>com.github.essandess.adblock2privoxy.nginx</string>
+<key>ProgramArguments</key>
+<array>
+	<string>/opt/local/bin/daemondo</string>
+	<string>--label=nginx-adblock2privoxy</string>
+	<string>--start-cmd</string>
+	<string>/opt/local/sbin/nginx</string>
+	<string>-c</string>
+	<string>/usr/local/etc/adblock2privoxy/nginx.conf</string>
+	<string>-g</string>
+	<string>daemon off;</string>
+	<string>;</string>
+	<string>--pid=fileauto</string>
+	<string>--pidfile</string>
+	<string>/opt/local/var/run/nginx/nginx-adblock2privoxy.pid</string>
+</array>
+<key>Disabled</key><true/>
+<key>KeepAlive</key><true/>
+</dict>
+</plist>
