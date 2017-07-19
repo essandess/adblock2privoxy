@@ -9,7 +9,7 @@ This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock
 adblock2privoxy [OPTION...] [URL...]
 ```
 
-The files in the example `privoxy` and `css` directories are created with the command:
+The files in the example [privoxy](../../../essandess/adblock2privoxy/tree/master/privoxy) and [css](../../../essandess/adblock2privoxy/tree/master/css) directories are created with the command:
 
 ```
 stack exec adblock2privoxy -- -p ./privoxy -w ./css -d 10.0.1.3:8119 ./easylist/*.txt
