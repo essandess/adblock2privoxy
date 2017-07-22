@@ -214,8 +214,18 @@ stack build
     * Use macOS's native gcc compiler in `/usr/bin/gcc`, not Macports (see issues).
 
 ```
-STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack setup --with-gcc /usr/bin/gcc
-STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack build --with-gcc /usr/bin/gcc
+$ which gcc
+/usr/bin/gcc
+
+$ gcc --version
+Configured with: --prefix=/Applications/Xcode.app/Contents/Developer/usr --with-gxx-include-dir=/usr/include/c++/4.2.1
+Apple LLVM version 8.1.0 (clang-802.0.42)
+
+export PATH=/usr/bin:$PATH  # ensure that /usr/bin/gcc is found first
+export STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack
+
+stack setup
+stack build
 ```
 
 3. Run the app:
