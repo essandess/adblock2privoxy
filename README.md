@@ -215,7 +215,7 @@ stack build
 
 ```
 STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack setup --with-gcc /usr/bin/gcc
-STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack build
+STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack build --with-gcc /usr/bin/gcc
 ```
 
 3. Run the app:
