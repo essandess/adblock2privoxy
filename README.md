@@ -1,12 +1,18 @@
 # adblock2privoxy
 Convert adblock config files to privoxy format
 
-This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo with debugging and regular expression optimizations.
+This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo with minor optimizations for regular expressions and large outputs to the CSS [debug](../../tree/master/css/debug) directory turned off.
 
 ## Synopsis
 
 ```
 adblock2privoxy [OPTION...] [URL...]
+```
+
+The files in the example [privoxy](../../../adblock2privoxy/tree/master/privoxy) and [css](../../../adblock2privoxy/tree/master/css) directories are created with the command:
+
+```
+stack exec adblock2privoxy -- -p ./privoxy -w ./css -d 10.0.1.3:8119 ./easylist/*.txt
 ```
 
 ## Objectives
