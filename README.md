@@ -209,6 +209,15 @@ stack setup
 stack build
 ```
 
+* macOS build specifics
+    * The `.stack` directory cannot be in a path that contains spaces
+    * Use macOS's native gcc compiler in `/usr/bin/gcc`, not Macports (see issues).
+
+```
+STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack setup --with-gcc /usr/bin/gcc
+STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack build
+```
+
 3. Run the app:
 
 ```
