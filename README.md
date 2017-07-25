@@ -1,7 +1,7 @@
 # adblock2privoxy
 Convert adblock config files to privoxy format
 
-This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo with minor optimizations for regular expressions and large outputs to the CSS [debug](../../tree/master/css/debug) directory turned off.
+This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo with minor optimizations for regular expressions, large outputs to the CSS [debug](../../tree/master/css/debug) directory turned off, and upgrades for the latest [ghc](../../../../commercialhaskell/stack) compiler and modules.
 
 ## Synopsis
 
