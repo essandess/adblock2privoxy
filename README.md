@@ -15,6 +15,25 @@ The files in the example [privoxy](../../../adblock2privoxy/tree/master/privoxy)
 stack exec adblock2privoxy -- -p ./privoxy -w ./css -d 10.0.1.3:8119 ./easylist/*.txt
 ```
 
+After installing working binaries (below), an example production run with regular updates looks like:
+
+```
+adblock2privoxy -p /usr/local/etc/adblock2privoxy/privoxy -w /usr/local/etc/adblock2privoxy/css -d 10.0.1.3:8119 \
+  https://easylist.to/easylist/easyprivacy.txt  \
+  https://easylist.to/easylist/easylist.txt  \
+  https://easylist.to/easylist/fanboy-annoyance.txt  \
+  https://easylist.to/easylist/fanboy-social.txt  \
+  https://easylist-downloads.adblockplus.org/antiadblockfilters.txt  \
+  https://easylist-downloads.adblockplus.org/malwaredomains_full.txt  \
+  https://easylist-downloads.adblockplus.org/malwaredomains_full.txt  \
+  https://raw.githubusercontent.com/Dawsey21/Lists/master/adblock-list.txt
+
+# then every few days
+adblock2privoxy -t /usr/local/etc/adblock2privoxy/privoxy/ab2p.task
+# restart privoxy, e.g. sudo port unload privoxy ; sudo port load privoxy
+```
+
+
 ## Objectives
 AdBlock Plus browser plugin has great block lists provided by big community, but it is client software and cannot work on a server as a proxy.
 
@@ -226,6 +245,13 @@ export STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack
 
 stack setup
 stack build
+```
+
+Install the binary (e.g. to `/usr/local/bin`):
+
+```
+PATH=/usr/bin:$PATH STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack install --local-bin-path ~/Downloads
+sudo cp ~/Downloads/bin/adblock2privoxy /usr/local/bin
 ```
 
 3. Run the app:
