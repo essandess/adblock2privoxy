@@ -221,11 +221,12 @@ You can build and run adblock2privoxy from sources if there is no binary package
 2. Build the app:
 
 ```
-stack unpack adblock2privoxy
-cd adblock2privoxy-*
+cd adblock2privoxy
 stack setup
 stack build
 ```
+
+&lbrack;Note: issuing the command `stack unpack adblock2privoxy` downloads the [original adblock2privoxy](https://hackage.haskell.org/package/adblock2privoxy) from Hackage to the directory `./adblock2privoxy-*`, which does not contain the modifications of this fork.&rbrack;
 
 * macOS build specifics
     * The `.stack` directory cannot be in a path that contains spaces
