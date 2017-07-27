@@ -1,4 +1,4 @@
 # tell Linguist to ignore derived CSS and privoxy outputs
-css/**/*.css linguist-vendored=false
-privoxy/* linguist-vendored=false
-easylist/* linguist-vendored=false
+css/**/*.css linguist-vendored
+privoxy/* linguist-vendored
+easylist/* linguist-vendored
