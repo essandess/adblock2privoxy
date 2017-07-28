@@ -32,6 +32,16 @@ adblock2privoxy -t /usr/local/etc/adblock2privoxy/privoxy/ab2p.task
 # restart privoxy, e.g. sudo port unload privoxy ; sudo port load privoxy
 ```
 
+## Quick Build/Install Example
+
+This will build a local `/usr/local/bin/adblock2privoxy` executable from source and templates saved in `/usr/local/etc/adblock2privoxy/adblock2privoxy`.
+
+```
+curl -sSL https://get.haskellstack.org/ | sh
+sudo mkdir -p /usr/local/etc/adblock2privoxy
+sudo rsync -a ./adblock2privoxy* /usr/local/etc/adblock2privoxy
+sudo -E bash -c 'export PATH=/usr/bin:$PATH ; export STACK_ROOT=/usr/local/etc/.stack ; ( cd /usr/local/etc/adblock2privoxy/adblock2privoxy ; stack setup --allow-different-user ; stack install --local-bin-path /usr/local/bin --allow-different-user )'
+```
 
 ## Objectives
 AdBlock Plus browser plugin has great block lists provided by big community, but it is client software and cannot work on a server as a proxy.
@@ -228,7 +238,7 @@ stack build
 
 &lbrack;Note: issuing the command `stack unpack adblock2privoxy` downloads the [original adblock2privoxy](https://hackage.haskell.org/package/adblock2privoxy) from Hackage to the directory `./adblock2privoxy-*`, which does not contain the modifications of this fork.&rbrack;
 
-* macOS build specifics
+#### macOS build specifics
     * The `.stack` directory cannot be in a path that contains spaces
     * Use macOS's native gcc compiler in `/usr/bin/gcc`, not Macports (see issues).
 
@@ -250,8 +260,7 @@ stack build
 Install the binary (e.g. to `/usr/local/bin`):
 
 ```
-PATH=/usr/bin:$PATH STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack stack install --local-bin-path ~/Downloads
-sudo cp ~/Downloads/bin/adblock2privoxy /usr/local/bin
+sudo -E bash -c 'export PATH=/usr/bin:$PATH ; export STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack ; stack setup --allow-different-user ; stack install --local-bin-path /usr/local/bin --allow-different-user'
 ```
 
 3. Run the app:
@@ -259,6 +268,12 @@ sudo cp ~/Downloads/bin/adblock2privoxy /usr/local/bin
 ```
 stack exec adblock2privoxy -- [YOUR ARGS]
 #for example: stack exec adblock2privoxy -- -p /etc/privoxy -d example.com https://easylist-downloads.adblockplus.org/easylist.txt
+```
+
+* From the locally installed binary (with `/usr/local/bin` in `$PATH`):
+
+```
+adblock2privoxy -- [YOUR ARGS]
 ```
 
 ## Packaging
