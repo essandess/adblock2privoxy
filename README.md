@@ -3,6 +3,8 @@ Convert adblock config files to privoxy format
 
 This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo with minor optimizations for regular expressions, large outputs to the CSS [debug](../../tree/master/css/debug) directory turned off, and upgrades for the latest [ghc](../../../../commercialhaskell/stack) compiler and modules.
 
+The webserver configation file [nginx.conf](./nginx.conf) is used for both element blocking and as a blackhole (including within HTTPS-secured pages) for the Proxy Autoconfiguration (PAC) file in the parent repo [easylist-pac-privoxy](../../../easylist-pac-privoxy).
+
 ## Synopsis
 
 ```
