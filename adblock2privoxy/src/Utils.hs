@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Utils (
 Struct2 (..),
 Struct3 (..),
@@ -57,9 +58,18 @@ getZipListM = getZipList.getZipList'
 zipListM :: [a] -> ZipListM a
 zipListM = ZipListM . ZipList
 
+#if (MIN_VERSION_base(4,11,0))
+instance Semigroup a => Semigroup (ZipListM a) where
+  x <> y = (<>) <$> x <*> y
+#endif
+
 instance Monoid a => Monoid (ZipListM a) where
   mempty = pure mempty
+#if (MIN_VERSION_base(4,11,0))
+  mappend = (<>)
+#else
   mappend x y = mappend <$> x <*> y
+#endif
 
 class Struct2 f where
         struct2 :: a1 -> a2 -> f a1 a2
