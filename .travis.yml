@@ -1,3 +1,23 @@
+# adapted from https://github.com/commercialhaskell/stack/blob/master/.travis.yml
+
 language: haskell
+
 sudo: false
 os: osx
+
+cache:
+    directories:
+        - $HOME/.ghc
+        - $HOME/.cabal
+        - $HOME/.stack
+        - $TRAVIS_BUILD_DIR/.stack-work
+
+ghc:
+  - "8.4.3"
+  
+matrix:
+  fast_finish: true
+  include:
+    - env: BUILD=stack GHCVER=8.4.3 STACK_YAML=stack.yaml
+      compiler: ": #stack 8.4.3 osx"
+      addons: {apt: {packages: [ghc-8.4.3], sources: [hvr-ghc]}}
