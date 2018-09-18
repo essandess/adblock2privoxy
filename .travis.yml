@@ -19,8 +19,8 @@ matrix:
   fast_finish: true
   include:
   - env: BUILD=stack ARGS="--resolver lts-12" STACK_YAML=stack.yaml
-      compiler: ": #stack 8.4.3 osx"
-      os: osx
+    compiler: ": #stack 8.4.3 osx"
+    os: osx
 
 before_install:
   # Using compiler above sets CC to an invalid value, so unset it
