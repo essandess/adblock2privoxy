@@ -1,6 +1,6 @@
 # adapted from https://github.com/commercialhaskell/stack/blob/master/.travis.yml
 
-language: haskell
+language: generic
 
 sudo: false
 
