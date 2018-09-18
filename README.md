@@ -43,7 +43,7 @@ This will build a local `/usr/local/bin/adblock2privoxy` executable from source 
 curl -sSL https://get.haskellstack.org/ | sh
 sudo mkdir -p /usr/local/etc/adblock2privoxy
 sudo rsync -a ./adblock2privoxy* /usr/local/etc/adblock2privoxy
-sudo -E bash -c 'export PATH=/usr/bin:$PATH ; export STACK_ROOT=/usr/local/etc/.stack ; ( cd /usr/local/etc/adblock2privoxy/adblock2privoxy ; stack setup --allow-different-user ; stack install --local-bin-path /usr/local/bin --allow-different-user )'
+sudo -E bash -c 'PATH=/usr/bin:$PATH STACK_ROOT=/usr/local/etc/.stack cd /usr/local/etc/adblock2privoxy/adblock2privoxy && stack setup --allow-different-user && stack install --local-bin-path /usr/local/bin --allow-different-user'
 ```
 
 ## Objectives
