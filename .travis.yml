@@ -12,8 +12,8 @@ cache:
         - $HOME/.stack
         - $TRAVIS_BUILD_DIR/.stack-work
 
-ghc:
-  - "8.4.3"
+# ghc:
+#   - "8.4.3"
   
 matrix:
   fast_finish: true
@@ -21,3 +21,22 @@ matrix:
     - env: BUILD=stack GHCVER=8.4.3 STACK_YAML=stack.yaml
       compiler: ": #stack 8.4.3 osx"
       addons: {apt: {packages: [ghc-8.4.3], sources: [hvr-ghc]}}
+
+install:
+ - unset CC
+ - export PATH=$HOME/.local/bin:/opt/ghc/$GHCVER/bin:$PATH
+ - ./.travis/install-ghr.sh
+ - ./.travis/install-stack.sh
+
+script:
+ - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+ - GHC_OPTIONS="-Werror"
+ - |
+   set -ex
+   # Run tests
+   stack --no-terminal test --ghc-options="$GHC_OPTIONS"
+   set +ex
+after_success:
+ - |
+   # Build and ship binary
+   ./.travis/attach-binary.sh
