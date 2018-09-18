@@ -21,18 +21,13 @@ matrix:
   - env: BUILD=stack ARGS="--resolver lts-12" STACK_YAML=stack.yaml
       compiler: ": #stack 8.4.3 osx"
       os: osx
-      addons: {apt: {packages: [ghc-8.4.3], sources: [hvr-ghc]}}
 
 before_install:
   # Using compiler above sets CC to an invalid value, so unset it
   - unset CC
 
-  # We want to always allow newer versions of packages when building on GHC HEAD
-  - CABALARGS=""
-  - if [ "x$GHCVER" = "xhead" ]; then CABALARGS=--allow-newer; fi
-
   # Download and unpack the stack executable
-  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:/opt/alex/$ALEXVER/bin:/opt/happy/$HAPPYVER/bin:$HOME/.cabal/bin:$PATH
+  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:$HOME/.cabal/bin:$PATH
   - mkdir -p ~/.local/bin
   - |
     if [ `uname` = "Darwin" ]
@@ -42,14 +37,8 @@ before_install:
       travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
     fi
 
-    # Use the more reliable S3 mirror of Hackage
-    mkdir -p $HOME/.cabal
-    echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
-    echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
-
 install:
   - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-  - if [ -f configure.ac ]; then autoreconf -i; fi
   - |
     set -ex
     case "$BUILD" in
