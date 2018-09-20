@@ -36,17 +36,25 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                     "" -> ""
                     _  -> changeFirst.changeLast $ host
                     where
-                    changeLast []     = []
+                    changeLast []                                   = []
+                    changeLast ('.' : '*' : [])
+                        | query' == ""                              = "."
+                        | otherwise                                 = ".*"
+                    changeLast ('*' : '.' : [])
+                        | query' == ""                              = "*."
+                        | otherwise                                 = "*.*"
                     changeLast [lst]
                         | lst == '|' || lst `elem` hostSeparators   =  []
-                        | lst == '*' || lst == '\0'                 =  "*."
+                        | lst == '*' && query' == ""                =  "*."
+                        | lst == '*' && query' /= ""                =  "*"
+                        | lst == '.'                                =  "."
                         | otherwise                                 =  lst : "*."
                     changeLast (c:cs) = c : changeLast cs
 
                     changeFirst []    = []
                     changeFirst (first:cs)
                         | first == '*'                       =       '.' :  '*'  : cs
-                        | bindStart == Hard || proto /= ""   =             first : cs
+                        | first == '.' || bindStart == Hard || proto /= ""   =       first : cs
                         | bindStart == Soft                  =       '.' : first : cs
                         | otherwise                          = '.' : '*' : first : cs
 
@@ -89,12 +97,18 @@ parseUrl =
     in   parse (join <$> (fmap.fmap) postfilter raw) "url"
     where
         makeUrls start mid end = makeUrl <$> pure start <*> mid <*> pure end
-        makeUrl start (proto, host, query) end = UrlPattern start proto host query end False
+        makeUrl start (proto, host, query) end = UrlPattern start proto (trimTrailingNul host) query end False
 
         bindStart = (try (Soft <$ string "||") <|> try (Hard <$ string "|") <|> return None) <?> "query start"
         queryEnd = (char '|' <* eof) <|> ('\0' <$ eof) <|> char '\0' <?> "query end"
         bindEnd = (\c -> if c == '|' then Hard else None) <$> queryEnd
         port = option False $ many1 (noneOf ":") *> char ':' *> many1 (digit <|> char '*') *> optionMaybe (oneOf "/^") *> (True <$ queryEnd)
+
+        trimTrailingNul :: String -> String
+        trimTrailingNul [] = []
+        trimTrailingNul (c:cs)
+            | cs == [] && c == '\0' = []
+            | otherwise             = c : trimTrailingNul(cs)
 
         hostChar :: Parser Char
         hostChar = alphaNum <|> oneOf ".-:"
@@ -159,7 +173,7 @@ parseUrl =
                                     else
                                         do
                                         lift $ skipMany $ char '*' --skip leading * if presented
-                                        name <- lift $ many protocolChar
+                                        name <- lift $ many1 protocolChar
                                         sep <- lift $ many $ oneOf hostSeparators
                                         let chars = name ++ replace "^" "//" sep -- concatenate input and expand separator wildcard
                                         nextChar <- lift $ lookAhead anyChar
