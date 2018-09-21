@@ -73,12 +73,11 @@ install:
     set +ex
 
 script:
-  - cd adblock2privoxy
   - |
     set -ex
     case "$BUILD" in
       stack)
-        stack --no-terminal $ARGS setup --bench --no-run-benchmarks
+        cd adblock2privoxy
         stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
         ;;
       cabal)
