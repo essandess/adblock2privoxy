@@ -77,7 +77,6 @@ script:
     set -ex
     case "$BUILD" in
       stack)
-        cd adblock2privoxy
         stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
         ;;
       cabal)
