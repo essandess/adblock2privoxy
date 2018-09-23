@@ -90,7 +90,14 @@ parseInfo text = do
                 *> skipMany (char ' ') *> many1 anyChar)
         expiresParser = (\n unit -> info{_expires = unit * read n})
             <$> (string "Expires: " *> many1 digit) <*> (24 <$ string " days" <|> 1 <$ string " hours")
-        versionParser = (\x -> info{_version = read x}) <$> (string "Version: " *> many1 digit)
+        -- Figure out how to do this with: many1 digit `sepBy` char '.'
+        -- https://www.schoolofhaskell.com/school/to-infinity-and-beyond/pick-of-the-week/parsing-floats-with-parsec
+        (<++>) a b = (++) <$> a <*> b
+        (<:>) a b = (:) <$> a <*> b
+        number = many1 digit
+        subnumber = char '.' <:> number
+        versionnumber = number <|> number <++> subnumber
+        versionParser = (\x -> info{_version = read x}) <$> (string "Version: " *> versionnumber)
         stringParser = skipMany (char ' ') *>
             (try urlParser <|> try titleParser <|> try expiresParser <|> try versionParser
               <|> try licenseParser <|> try homepageParser <|> try lastUpdatedParser)
