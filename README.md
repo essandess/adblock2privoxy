@@ -129,6 +129,8 @@ The app generates following files
 2. Change privoxy config file located in
 
 * `/etc/privoxy/config` for linux
+* `/opt/local/etc/privoxy/config` for macOS with [MacPorts](https://www.macports.org)
+* `/usr/local/etc/privoxy/config` for macOS with (Homebrew)[https://brew.sh]
 * `C:\Program Files\Privoxy\config.txt` for windows
 
 Add following lines:
@@ -150,7 +152,9 @@ filterfile ab2p.filter
 
 Nginx config: add following lines into http section of `nginx.conf` file
 
-  * for linus `/etc/nginx/nginx.conf`
+  * for linux `/etc/nginx/nginx.conf`
+  * for macOS with [MacPorts](https://www.macports.org) `/opt/local/etc/nginx/nginx.conf`
+  * for macOS with (Homebrew)[https://brew.sh] `/usr/local/etc/nginx/nginx.conf`
   * for windows `[nginx location]\conf\nginx.conf`
 
 ```
