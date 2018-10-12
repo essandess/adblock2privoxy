@@ -14,7 +14,7 @@ adblock2privoxy [OPTION...] [URL...]
 The files in the example [privoxy](../../../adblock2privoxy/tree/master/privoxy) and [css](../../../adblock2privoxy/tree/master/css) directories are created with the command:
 
 ```
-stack exec adblock2privoxy -- -p ./privoxy -w ./css -d 10.0.1.3:8119 ./easylist/*.txt
+adblock2privoxy -p ./privoxy -w ./css -d 127.0.0.1:8119 ./easylist/*.txt
 ```
 
 After installing working binaries (below), an example production run with regular updates looks like:
