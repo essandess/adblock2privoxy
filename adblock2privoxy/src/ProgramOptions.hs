@@ -72,7 +72,7 @@ writeError :: String -> IO a
 writeError msg = ioError $ userError $ msg ++ "\n" ++ usageInfo header options
         where
         header = versionText ++
-                "\nSee home page for more details and updates: http://projects.zubr.me/wiki/adblock2privoxy\n" ++
+                "\nSee home page for more details and updates: https://github.com/essandess/adblock2privoxy\n" ++
                 "Usage: adblock2privoxy [OPTION...] [URL...]"
 
 
