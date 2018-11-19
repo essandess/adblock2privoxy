@@ -201,5 +201,5 @@ How to apply results
 Contribution
 ------------
 
-* Clone repository from http://projects.zubr.me/adblock2privoxy.git.
-* `Report bugs <https://projects.zubr.me/newticket?project=adblock2privoxy>`_
+* Clone repository from https://github.com/essandess/adblock2privoxy.git.
+* `Report bugs <https://github.com/essandess/adblock2privoxy/issues>`_
