@@ -1,12 +1,12 @@
 Name:    adblock2privoxy
-Version: 1.4.2
+Version: 2.0.0
 Release: 1%{?dist}
 Summary: Convert adblock config files to privoxy format
 
 License: GPL-3
-URL:     https://projects.zubr.me/wiki/adblock2privoxy
-Source0: http://hackage.haskell.org/package/adblock2privoxy-1.4.2/adblock2privoxy-1.4.2.tar.gz
-Vendor:  Alexey Zubritskiy <adblock2privoxy@zubr.me>
+URL:     https://github.com/essandess/adblock2privoxy
+Source0: http://hackage.haskell.org/package/adblock2privoxy-2.0.0/adblock2privoxy-2.0.0.tar.gz
+Vendor:  Alexey Zubritskiy <adblock2privoxy@zubr.me>, Steven Thomas Smith <steve.t.smith@gmail.com>
 Group:   Web
 
 BuildRequires:  stack
