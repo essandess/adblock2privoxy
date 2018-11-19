@@ -20,10 +20,10 @@ extra-source-files:
                 distribution/debbuild/DEBIAN/control
                 distribution/makeDeb.sh
 license:             GPL-3
-maintainer:          Alexey Zubritskiy <adblock2privoxy@zubr.me>
+maintainer:          Steven Thomas Smith <steve.t.smith@gmail.com>
 license-file:        LICENSE
 stability:           stable
-homepage:            https://projects.zubr.me/wiki/adblock2privoxy
+homepage:            https://github.com/essandess/adblock2privoxy
 category:            Web
 synopsis:            Convert adblock config files to privoxy format
 description:
@@ -101,6 +101,6 @@ executable adblock2privoxy
 
 source-repository this
   type:      git
-  location:  ​http://projects.zubr.me/adblock2privoxy.git
+  location:  ​https://github.com/essandess/adblock2privoxy.git
   subdir:    adblock2privoxy
-  tag:       1.4.2
+  tag:       2.0.0
