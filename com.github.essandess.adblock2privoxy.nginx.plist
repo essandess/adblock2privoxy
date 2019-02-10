@@ -15,6 +15,11 @@
 	<string>-g</string>
 	<string>daemon off;</string>
 	<string>;</string>
+        <string>--stop-cmd</string>
+	<string>/bin/bash</string>
+	<string>-c</string>
+	<string>pidfile=/opt/local/var/run/nginx/nginx-adblock2privoxy.pid; if [ -f ${pidfile} ]; then /usr/bin/kill `cat ${pidfile}` &amp;&amp; /bin/rm -f ${pidfile}; else /usr/bin/kill -SIGUSR1 `/usr/bin/pgrep -u root nginx` 2>/dev/null; fi</string>
+	<string>;</string>
 	<string>--pid=fileauto</string>
 	<string>--pidfile</string>
 	<string>/opt/local/var/run/nginx/nginx-adblock2privoxy.pid</string>
