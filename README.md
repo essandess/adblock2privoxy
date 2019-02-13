@@ -46,6 +46,18 @@ sudo rsync -a ./adblock2privoxy* /usr/local/etc/adblock2privoxy
 PATH=/usr/bin:$PATH sudo -E bash -c 'export STACK_ROOT=/usr/local/etc/.stack ; cd /usr/local/etc/adblock2privoxy/adblock2privoxy && stack setup --allow-different-user && stack install --local-bin-path /usr/local/bin --allow-different-user'
 ```
 
+## macOS launchd.plist daemons
+
+macOS launchd.plist daemons to start `nginx` and update the `privoxy` database on a schedule. See [macOS-Fortress](../../../macOS-Fortress) for a working example.
+
+```
+sudo install -m 644 ./com.github.essandess.adblock2privoxy.plist /Library/LaunchDaemons
+sudo install -m 644 ./com.github.essandess.adblock2privoxy.nginx.plist /Library/LaunchDaemons
+sudo launchctl load -w /Library/LaunchDaemons/com.github.essandess.adblock2privoxy.plist
+sudo launchctl load -w /Library/LaunchDaemons/com.github.essandess.adblock2privoxy.nginx.plist
+sudo launchctl start com.github.essandess.adblock2privoxy
+```
+
 ## Objectives
 AdBlock Plus browser plugin has great block lists provided by big community, but it is client software and cannot work on a server as a proxy.
 
