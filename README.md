@@ -1,5 +1,5 @@
 # adblock2privoxy
-Convert adblock config files to privoxy format
+Convert adblock config files to privoxy format.
 
 This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo with minor optimizations for regular expressions, large outputs to the CSS [debug](../../tree/master/css/debug) directory turned off, and upgrades for the latest [ghc](../../../../commercialhaskell/stack) compiler and modules.
 
@@ -34,6 +34,18 @@ adblock2privoxy -p /usr/local/etc/adblock2privoxy/privoxy -w /usr/local/etc/adbl
 adblock2privoxy -t /usr/local/etc/adblock2privoxy/privoxy/ab2p.task
 # restart privoxy, e.g. sudo port unload privoxy ; sudo port load privoxy
 ```
+
+# macOS Installation
+
+The macOS repo is part of [MacPorts](https://www.macports.org). The installation details below this section are deprecated.
+
+To install:
+```
+sudo port install adblock2privoxy
+sudo port load adblock2privoxy
+```
+
+# Unix Installation
 
 ## Quick Build/Install Example
 
@@ -231,8 +243,8 @@ Apache config: put following lines into
 
 ## Contribution
 
-* Clone repository from http://projects.zubr.me/adblock2privoxy.git.
-* [Report bugs](https://projects.zubr.me/newticket?project=adblock2privoxy)
+* Clone repository from https://github.com/essandess/adblock2privoxy.git.
+* [Report bugs](https://github.com/essandess/adblock2privoxy/issues)
 
 ## Adblock2Privoxy installation
 
