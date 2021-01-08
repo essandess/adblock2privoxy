@@ -31,6 +31,7 @@ jobs:
 
     - name: Run exec
       working-directory: adblock2privoxy
+      # change this for adding new filter-files, other path to css-files (-w) or other host name (-d)
       run: stack exec adblock2privoxy -- -p ../privoxy -d my-apache4privoxy/privoxy -w ../css
             https://raw.githubusercontent.com/abp-filters/abp-filters-anti-cv/master/german.txt 
             https://raw.githubusercontent.com/abp-filters/abp-filters-anti-cv/master/english.txt 
@@ -45,10 +46,20 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git add -A
         git commit -m "Add changes" -a
-    - name: Push changes
+    - name: Delete old branch
+      run: git remote remove genfiles
+      continue-on-error: true
+    - name: Push privoxy files
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        # branch: ${{ github.ref }}
-        branch: generated_files
+        branch: genfiles
         directory: 'privoxy'
+        force:  true
+    - name: Push css files
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: genfiles
+        directory: 'css'
+        force:  true
