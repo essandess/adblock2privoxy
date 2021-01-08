@@ -2,11 +2,12 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ master ]
-    paths:
-      - 'privoxy/**'
-      - 'css/**'
-
+    branches: [ genfiles ]
+  pull_request:
+    branches: [ genfiles ]
+  create:
+    branches: [ genfiles ]
+    
 jobs:
 
   build:
