@@ -35,7 +35,7 @@ processSources options taskFile sources = do
                 then putStrLn "WARNING: CSS generation is not run because webserver domain is not specified"
                 else elemBlock (_webDir options) sourceInfoText parsed'
         urlBlock (_privoxyDir options) sourceInfoText parsed'
-        writeTemplateFiles (_privoxyDir options) (_cssDomain options)
+        writeTemplateFiles (_privoxyDir options) (_cssDomain options) (_useHTTP options)
         putStrLn $ "Run 'adblock2privoxy -t " ++ taskFile ++ "' every 1-2 days to process data updates."
         where
         parseSource manager sourceInfo = do
@@ -62,7 +62,7 @@ main =  do
         setForeignEncoding utf8
         now <- getCurrentTime
         args <- getArgs
-        (options@(Options printVersion _ _ taskFile _ forced), urls) <- parseOptions args
+        (options@(Options printVersion _ _ taskFile _ _ forced), urls) <- parseOptions args
         (options', task) <- do
                 fileExists <- doesFileExist taskFile
                 if fileExists

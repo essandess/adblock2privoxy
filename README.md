@@ -103,6 +103,8 @@ If no source URLs are specified, task file is used to determine sources: previou
   Css files output path
 -d DOMAIN, --domainCSS=DOMAIN
   Domain of CSS web server (required for Element Hide functionality)
+-u, --useHTTP
+  Use HTTP for CSS web server; the default is HTTPS to avoid mixed content
 -t PATH, --taskFile=PATH
   Path to task file containing urls to process and options.
 -f, --forced
@@ -183,16 +185,35 @@ Nginx config: add following lines into http section of `nginx.conf` file
 
 ```
 server {
-      listen 80;
+      listen www.example.com:443;
       #ab2p css domain name (optional, should be equal to --domainCSS parameter)
       server_name www.example.com;
+
+      ssl on;
+      ssl_certificate      certs/adblock2privoxy-nginx.chain.pem;
+      ssl_certificate_key  certs/adblock2privoxy-nginx.key.pem.decrypted;
+      # use modern crypto
+      # https://ssl-config.mozilla.org
+      ssl_protocols TLSv1.3;
+      ssl_prefer_server_ciphers on;
+      ssl_dhparam certs/dhparam.pem;
+      ssl_ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:EECDH+AESGCM:EDH+AESGCM;
+      ssl_ecdh_curve secp384r1;
+      ssl_session_timeout  180m;
+      ssl_session_cache    shared:SSL:20m;
+      ssl_session_tickets  off;
+      add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
+
+      # comply with Content Security policy
+      add_header Content-Type "text/css";
+      add_header X-Content-Type-Options nosniff;
 
       #root = --webDir parameter value
       root /var/www/privoxy;
 
       location ~ ^/[^/.]+\..+/ab2p.css$ {
           # first reverse domain names order
-    rewrite ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css last;
+          rewrite ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css last;
       }
 
       location ~ (^.*/+)[^/]+/+ab2p.css {
@@ -201,6 +222,82 @@ server {
           try_files $uri $1ab2p.css;
       }
 }
+```
+
+The CSS web server must use HTTPS to comply with standard Content
+Security policies that prohibit mixed content. Example
+[nginx.conf](./nginx.conf) and [openssl.cnf](openssl.cnf) files are
+included in this repo that generate the necessary PKI. Modify
+these as appropriate. Example `openssl` commands:
+```bash
+mkdir certs && cd certs
+touch index.txt
+echo 1000 > serial
+
+# CA certificate encrypted key passphrase, both -passin and -passout
+sf-pwgen --algorithm memorable --count 2 --length 24 2>/dev/null | paste -s -d -- '-' \
+    1>passphrase.txt || true
+if [ $(head -1 passphrase.txt | wc -c) < 20 ]; then \
+    openssl rand -base64 23 1>passphrase.txt 2>/dev/null; fi
+cat passphrase.txt passphrase.txt > passphrase-dbl.txt \
+    && mv passphrase-dbl.txt passphrase.txt \
+    || rm -f passphrase-dbl.txt
+chmod go-rwx passphrase.txt
+
+# CA encrypted key
+# EC
+openssl genpkey -out ca.key.pem -algorithm EC \
+    -pkeyopt ec_paramgen_curve:P-256 -aes256 \
+    -pass file:passphrase.txt
+
+# RSA
+# # openssl genpkey -out ca.key.pem -algorithm RSA \
+# #     -pkeyopt rsa_keygen_bits:2048 -aes256 \
+# #     -pass file:passphrase.txt
+
+# CA certificate
+openssl req -config openssl.cnf \
+    -new -x509 -days 3650 -sha256 -extensions v3_ca -out certs/ca.cert.pem \
+    -key ca.key.pem -passin file:passphrase.txt -batch
+
+# CA certificate text verification
+openssl x509 -text -noout -in ca.cert.pem
+
+# CA certificate openssl self-verification
+openssl verify -CAfile ca.cert.pem ca.cert.pem
+
+# Server certificate encrypted key and decrypted key
+openssl genpkey -out adblock2privoxy-nginx.key.pem \
+    -algorithm EC -pkeyopt ec_paramgen_curve:P-384 -aes256 \
+    -pass file:passphrase.txt
+openssl ec -in adblock2privoxy-nginx.key.pem -passin file:passphrase.txt \
+    -out adblock2privoxy-nginx.key.pem.decrypted
+chmod go-rwx adblock2privoxy-nginx.key.pem.decrypted
+
+# Server certificate CSR
+openssl req -config openssl.cnf -new -sha256 -extensions server_cert \
+    -key adblock2privoxy-nginx.key.pem -passin file:passphrase.txt \
+    -out adblock2privoxy-nginx.csr.pem -batch
+
+# Server certificate (825 days maximum validity)
+# https://support.apple.com/en-us/HT210176
+openssl ca -config openssl.cnf -days 825 -notext -md sha256 \
+    -extensions server_cert -in adblock2privoxy-nginx.csr.pem \
+    -out adblock2privoxy-nginx.cert.pem -passin file:passphrase.txt \
+    -subj '/CN=adblock2privoxy-nginx' -batch
+
+# Server certificate chain of trust
+cat adblock2privoxy-nginx.cert.pem ca.cert.pem > adblock2privoxy-nginx.chain.pem
+
+# Server certificate text
+openssl x509 -in adblock2privoxy-nginx.cert.pem -text -noout
+
+# Server certificate and chain validity
+openssl verify -CAfile ca.cert.pem adblock2privoxy-nginx.cert.pem
+openssl verify -CAfile ca.cert.pem adblock2privoxy-nginx.chain.pem
+
+# DH params
+openssl dhparam -out dhparam.pem 2048
 ```
 
 Apache config: put following lines into

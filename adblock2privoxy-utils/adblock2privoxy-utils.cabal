@@ -1,49 +1,48 @@
-name:                adblock2privoxy-utils
-version:             2.0.2
-cabal-version:       >= 1.10
-build-type:          Simple
-tested-with:         GHC==8.10.4
-author:              Alexey Zubritsky <adblock2privoxy@zubr.me>, Steven Thomas Smith <steve.t.smith@gmail.com>
-homepage:            https://github.com/essandess/adblock2privoxy
-category:            Web
-license:             GPL-3
-license-file:        LICENSE
-synopsis:            Helper utilities and scripts for adblock2privoxy project
+name:           adblock2privoxy-utils
+version:        2.1.0
+cabal-version:  >= 1.10
+build-type:     Simple
+tested-with:    GHC==8.10.7
+author:         Alexey Zubritsky <adblock2privoxy@zubr.me>, Steven Thomas Smith <steve.t.smith@gmail.com>
+homepage:       https://github.com/essandess/adblock2privoxy
+category:       Web
+license:        GPL-3
+license-file:   LICENSE
+synopsis:       Helper utilities and scripts for adblock2privoxy project
 description:
-        * Creates config files for PRM packaging using values from cabal file
-        * Creates man help files from README
-        .
-        This package is only needed to pubish new releases of adblock2privoxy in hackage
-        .
-        It is not needed for packaging and execution of adblock2privoxy
-
+                * Creates config files for PRM packaging using values from cabal file
+                * Creates man help files from README
+                .
+                This package is only needed to pubish new releases of adblock2privoxy in hackage
+                .
+                It is not needed for packaging and execution of adblock2privoxy
 
 executable adblock2privoxy-utils
-  hs-source-dirs:  src
-  main-is:         Main.hs
-  ghc-options:     -Wall
-  default-language: Haskell2010
+  hs-source-dirs:   src
+  main-is:          Main.hs
+  ghc-options:      -Wall
+  default-language:  Haskell2010
   default-extensions:
-                   FlexibleInstances
+                     FlexibleInstances
   build-depends:
-                   base >= 4 && < 5,
-                   pandoc,
-                   Cabal >=1.6,
-                   pandoc-types >=1.12.3,
-                   filepath,
-                   directory,
-                   time,
-                   old-locale,
-                   MissingH
+                base,
+                pandoc,
+                Cabal >=1.6,
+                pandoc-types >=1.12.3,
+                filepath,
+                directory,
+                time,
+                old-locale,
+                MissingH
   other-modules:
-                   CabalTemplate
-                   DebControl
-                   ManPage
-                   RpmSpec
-                   RootPath
+                CabalTemplate
+                DebControl
+                ManPage
+                RpmSpec
+                RootPath
 
 source-repository this
-  type:      git
-  location:  https://github.com/essandess/adblock2privoxy.git
-  subdir:    adblock2privoxy-utils
-  tag:       v2.0.2
+  type:         git
+  location:     https://github.com/essandess/adblock2privoxy.git
+  subdir:       adblock2privoxy-utils
+  tag:          v2.1.0
