@@ -22,6 +22,7 @@ data Options = Options
      , _webDir      :: FilePath
      , _taskFile    :: FilePath
      , _cssDomain   :: String
+     , _useHTTP     :: Bool
      , _forced      :: Bool
      }
 
@@ -42,6 +43,9 @@ options =
          (ReqArg (\ d opts -> opts { _cssDomain = d })
                  "DOMAIN")
          "Domain of CSS web server (required for Element Hide functionality)"
+     , Option "u"   ["useHTTP"]
+         (NoArg (\ opts -> opts { _useHTTP = True }))
+         "Use HTTP for CSS web server; the default is HTTPS to avoid mixed content"
      , Option "t"   ["taskFile"]
          (ReqArg (\ f opts -> opts { _taskFile = f })
                  "PATH")
@@ -56,13 +60,13 @@ parseOptions argv =
    case getOpt Permute options argv of
       (opts,nonOpts,[]  ) ->
                 case foldl (flip id) emptyOptions opts of
-                        Options False "" _ "" _ _ -> writeError "Privoxy dir or task file should be specified.\n"
+                        Options False "" _ "" _ _ _ -> writeError "Privoxy dir or task file should be specified.\n"
                         opts'@Options{_showVersion = True} -> return (opts', nonOpts)
                         opts' -> return (setDefaults opts', nonOpts)
       (_,_,errs) -> writeError $ concat errs
    where
-        setDefaults opts@(Options _ (privoxyDir@(_:_)) "" _ _ _) = setDefaults opts{ _webDir = privoxyDir }
-        setDefaults opts@(Options _ privoxyDir _ "" _ _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
+        setDefaults opts@(Options _ (privoxyDir@(_:_)) "" _ _ _ _) = setDefaults opts{ _webDir = privoxyDir }
+        setDefaults opts@(Options _ privoxyDir _ "" _ _ _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
         setDefaults opts = opts
 
 versionText :: String
@@ -92,7 +96,7 @@ endMark :: String
 endMark = "------- end ------"
 
 emptyOptions :: Options
-emptyOptions = Options False "" "" "" "" False
+emptyOptions = Options False "" "" "" "" False False
 
 
 fillFromLog :: Options -> [String] -> Options

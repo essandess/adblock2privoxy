@@ -1,3 +1,8 @@
+2.1.0
+	* Use TLS for CSS server to avoid mixed content errors
+	* Add --useHTTP option
+        * Update to ghc 8.10.7, lts-18.18 resolver
+
 2.0.2
         * Update to ghc 8.10.4, lts-17.11 resolver
 

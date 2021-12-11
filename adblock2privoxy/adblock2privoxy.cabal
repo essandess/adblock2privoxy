@@ -1,10 +1,10 @@
-name:                adblock2privoxy
-version:             2.0.2
-cabal-version:       >= 1.10
-build-type:          Simple
+name:           adblock2privoxy
+version:        2.1.0
+cabal-version:  >= 1.10
+build-type:     Simple
 tested-with:
-                     GHC==8.10.4
-author:              Alexey Zubritsky <adblock2privoxy@zubr.me>, Steven Thomas Smith <steve.t.smith@gmail.com>
+                GHC==8.10.7
+author:         Alexey Zubritsky <adblock2privoxy@zubr.me>, Steven Thomas Smith <steve.t.smith@gmail.com>
 data-files:
                 templates/ab2p.system.action,
                 templates/ab2p.system.filter
@@ -19,88 +19,88 @@ extra-source-files:
                 distribution/makeRpm.sh
                 distribution/debbuild/DEBIAN/control
                 distribution/makeDeb.sh
-license:             GPL-3
-maintainer:          Steven Thomas Smith <steve.t.smith@gmail.com>
-license-file:        LICENSE
-stability:           stable
-homepage:            https://github.com/essandess/adblock2privoxy
-category:            Web
-synopsis:            Convert adblock config files to privoxy format
+license:        GPL-3
+maintainer:     Steven Thomas Smith <steve.t.smith@gmail.com>
+license-file:   LICENSE
+stability:      stable
+homepage:       https://github.com/essandess/adblock2privoxy
+category:       Web
+synopsis:       Convert adblock config files to privoxy format
 description:
-                       AdBlock Plus browser plugin has great block list files provided by big community,
-                       but it is client software and cannot work on a server as proxy.
-                       .
-                       Privoxy proxy has good potential to block ads at server side,
-                       but it experiences acute shortage of updated block lists.
-                       .
-                       This software converts adblock lists to privoxy config files format.
-                       .
-                       Almost all adblock features are supported including
-                       .
-                       * block/unblock requests (on privoxy)
-                       .
-                       all syntax features are supported except for regex templates matching host name
-                       .
-                       * hide/unhide page elements (via CSS)
-                       .
-                       all syntax features are supported
-                       .
-                       * all block request options except for outdated ones:
-                       .
-                       Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,
-                       document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
-                       .
-                       Unsupported: collapse, background, xbl, ping and dtd
+                AdBlock Plus browser plugin has great block list files provided by big community,
+                but it is client software and cannot work on a server as proxy.
+                .
+                Privoxy proxy has good potential to block ads at server side,
+                but it experiences acute shortage of updated block lists.
+                .
+                This software converts adblock lists to privoxy config files format.
+                .
+                Almost all adblock features are supported including
+                .
+                * block/unblock requests (on privoxy)
+                .
+                all syntax features are supported except for regex templates matching host name
+                .
+                * hide/unhide page elements (via CSS)
+                .
+                all syntax features are supported
+                .
+                * all block request options except for outdated ones:
+                .
+                Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,
+                document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
+                .
+                Unsupported: collapse, background, xbl, ping and dtd
 
 
 executable adblock2privoxy
-  hs-source-dirs:  src
-  main-is:         Main.hs
+  hs-source-dirs:   src
+  main-is:          Main.hs
   default-language: Haskell2010
   default-extensions:
-                   RankNTypes,
-                   ScopedTypeVariables,
-                   FlexibleInstances,
-                   GeneralizedNewtypeDeriving,
-                   FlexibleContexts
+                RankNTypes,
+                ScopedTypeVariables,
+                FlexibleInstances,
+                GeneralizedNewtypeDeriving,
+                FlexibleContexts
   build-depends:
-                   base >= 4 && < 5,
-                   parsec,
-                   mtl,
-                   containers,
-                   filepath,
-                   directory,
-                   MissingH,
-                   parsec-permutation >= 0.1.2.0,
-                   time >=1.4,
-                   old-locale >=1.0,
-                   strict >=0.3,
-                   network >=2.4,
-                   http-conduit,
-                   text >=0.11,
-                   network-uri,
-                   case-insensitive
-  ghc-options:     -Wall
+                base >= 4 && < 5,
+                parsec,
+                mtl,
+                containers,
+                filepath,
+                directory,
+                MissingH >=1.4.3.0,
+                parsec-permutation >=0.1.2.0,
+                time >=1.4,
+                old-locale >=1.0,
+                strict >=0.3,
+                network >=2.4,
+                http-conduit,
+                text >=0.11,
+                network-uri,
+                case-insensitive
+  ghc-options:  -Wall
   other-modules:
-                   ElementBlocker,
-                   InputParser,
-                   Network,
-                   OptionsConverter,
-                   ParsecExt,
-                   Paths_adblock2privoxy,
-                   PatternConverter,
-                   PolicyTree,
-                   PopupBlocker,
-                   ProgramOptions,
-                   SourceInfo,
-                   Statistics,
-                   Task,
-                   Templates,
-                   UrlBlocker,
-                   Utils
+                ElementBlocker,
+                InputParser,
+                Network,
+                OptionsConverter,
+                ParsecExt,
+                Paths_adblock2privoxy,
+                PatternConverter,
+                PolicyTree,
+                PopupBlocker,
+                ProgramOptions,
+                SourceInfo,
+                Statistics,
+                Task,
+                Templates,
+                UrlBlocker,
+                Utils
 
 source-repository this
-  type:      git
-  location:  https://github.com/essandess/adblock2privoxy.git
-  subdir:    adblock2privoxy
-  tag:       v2.0.2
+  type:         git
+  location:     https://github.com/essandess/adblock2privoxy.git
+  subdir:       adblock2privoxy
+  tag:          v2.1.0

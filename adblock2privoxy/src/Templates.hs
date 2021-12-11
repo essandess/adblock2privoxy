@@ -28,8 +28,13 @@ terminalActionSwitch False Xpopup = "-filter{ab2p-popup-filter}"
 terminalActionSwitch True Dnt = "+add-header{DNT: 1}"
 terminalActionSwitch _ _ = ""
 
-writeTemplateFiles :: String -> String -> IO ()
-writeTemplateFiles outDir cssDomain = do
+cssProtocol :: Bool -> String
+cssProtocol useHTTP
+        | useHTTP == True = "http"
+        | otherwise       = "https"
+
+writeTemplateFiles :: String -> String -> Bool -> IO ()
+writeTemplateFiles outDir cssDomain useHTTP = do
         copySystem "ab2p.system.action"
         copySystem "ab2p.system.filter"
         where
@@ -38,8 +43,8 @@ writeTemplateFiles outDir cssDomain = do
                 lns = lines content
                 replace' line (from, to) = replace from to line
                 filterLine line
-                        | null cssDomain && startswith "[?CSS_DOMAIN]" line = ""
-                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[CSS_DOMAIN]", cssDomain)]
+                        | null cssDomain && (startswith "[?CSS_DOMAIN]" line || startswith "[?CSS_DOMAIN_DEBUG]" line) = ""
+                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[?CSS_DOMAIN_DEBUG]", "# "), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
 
         copySystem file = do
                 dataDir <- getDataDir
