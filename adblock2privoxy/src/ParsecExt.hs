@@ -11,7 +11,7 @@ module ParsecExt (
 import Utils
 import Control.Applicative hiding (many)
 import Text.ParserCombinators.Parsec hiding ((<|>),State)
-import Control.Monad.Trans
+import Control.Monad
 import Control.Monad.RWS
 import Control.Monad.State
 import Data.Maybe

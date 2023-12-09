@@ -1,5 +1,5 @@
 name:           adblock2privoxy-utils
-version:        2.1.0
+version:        2.1.1
 cabal-version:  >= 1.10
 build-type:     Simple
 tested-with:    GHC==8.10.7
@@ -25,7 +25,7 @@ executable adblock2privoxy-utils
   default-extensions:
                      FlexibleInstances
   build-depends:
-                base >= 4 && < 5,
+                base >= 4 && < 9.9,
                 pandoc,
                 Cabal >=1.6,
                 pandoc-types >=1.12.3,
@@ -45,4 +45,4 @@ source-repository this
   type:         git
   location:     https://github.com/essandess/adblock2privoxy.git
   subdir:       adblock2privoxy-utils
-  tag:          v2.1.0
+  tag:          v2.1.1

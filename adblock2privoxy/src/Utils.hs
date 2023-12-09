@@ -24,8 +24,8 @@ pure'',
 (.*.)
 ) where
 import Control.Applicative hiding (many)
-import Control.Monad.Writer
 import Control.Monad.State
+import Data.Monoid
 
 ------------------------------------------------------------------------------------------
 ----------------------------- export -----------------------------------------------------

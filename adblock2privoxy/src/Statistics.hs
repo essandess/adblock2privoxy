@@ -5,6 +5,7 @@ import qualified Data.Map as Map
 import InputParser
 import Data.Maybe
 import Control.Applicative
+import Control.Monad
 import Control.Monad.State
 
 type Stat = Map.Map String Int

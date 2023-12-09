@@ -1,3 +1,6 @@
+2.1.1
+	* Fix compilation issues for ghc 9.6.3
+
 2.1.0
 	* Use TLS for CSS server to avoid mixed content errors
 	* Add --useHTTP option
