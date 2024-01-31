@@ -25,15 +25,16 @@ elemBlock path info = writeElemBlock . elemBlockData
     writeElemBlock :: ElemBlockData -> IO ()
     writeElemBlock (ElemBlockData flatPatterns rulesTree) =
         do
-           let debugPath = path </> "debug"
-               filteredInfo = filter ((||) <$> not . startswith "Url:" <*> startswith "Url: http") info
+           let filteredInfo = filter ((||) <$> not . startswith "Url:" <*> startswith "Url: http") info
+               -- debugPath = path </> "debug"
            createDirectoryIfMissing True path
            cont <- getDirectoryContents path
            _ <- sequence $ removeOld <$> cont
-           createDirectoryIfMissing True debugPath
+           -- createDirectoryIfMissing True debugPath
            -- writeBlockTree path debugPath rulesTree
            writeBlockTree path rulesTree
-           writePatterns_with_debug filteredInfo (path </> "ab2p.common.css") (debugPath </> "ab2p.common.css") flatPatterns
+           writePatterns_with_debug filteredInfo (path </> "ab2p.common.css") "" flatPatterns
+           -- writePatterns_with_debug filteredInfo (path </> "ab2p.common.css") (debugPath </> "ab2p.common.css") flatPatterns
     removeOld entry' =
         let entry = path </> entry'
         in do
@@ -64,9 +65,10 @@ elemBlock path info = writeElemBlock . elemBlockData
     writePatterns_with_debug _ _ _ [] = return ()
     writePatterns_with_debug info' normalFilename debugFilename patterns =
          do
-            writeCssFile debugFilename $ intercalate "\n" $ (++ Templates.blockCss) <$> patterns
             writeCssFile normalFilename $ intercalate "\n" ((++ Templates.blockCss) . intercalate "," <$>
-                                                                            splitEvery 4000 patterns)
+                    splitEvery 4000 patterns)
+            when (debugFilename /= "") $
+                writeCssFile debugFilename $ intercalate "\n" $ (++ Templates.blockCss) <$> patterns
          where
          splitEvery n = takeWhile (not . null) . unfoldr (Just . splitAt n)
          writeCssFile filename content =

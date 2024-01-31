@@ -24,8 +24,14 @@ s@^accept(?=:[\s\w]*image\/):.*@ab2p-handle-as-image@Ti
 SERVER-HEADER-FILTER: ab2p-xframe-filter
 s@.*\sHTTP\/1.*@$&\r\nX-Frame-Options: DENY@i
 
+[?CSS_DOMAIN_DEBUG]CLIENT-HEADER-TAGGER: ab2p-elemhide-check-debug
+[?CSS_DOMAIN_DEBUG]s@^cookie:.*ab2p-elemhide-filter-debug=true(?:;|$).*@ab2p-elemhide-filter-debug@Ti
+
 [?CSS_DOMAIN]FILTER: ab2p-elemhide-filter
 [?CSS_DOMAIN]s@[^'"\s]\s*<head[^>]*>(?=\s*[^'"\s])@$&<link rel="stylesheet" type="text/css" href="[CSS_PROTOCOL]://[CSS_DOMAIN]/ab2p.common.css"></link><link rel="stylesheet" type="text/css" href="[CSS_PROTOCOL]://[CSS_DOMAIN]/$host/ab2p.css"></link>@iUD
+
+[?CSS_DOMAIN_DEBUG]FILTER: ab2p-elemhide-filter-debug
+[?CSS_DOMAIN_DEBUG]s@[^'"\s]\s*<head[^>]*>(?=\s*[^'"\s])@$&<link rel="stylesheet" type="text/css" href="[CSS_PROTOCOL]://[CSS_DOMAIN]/debug/ab2p.common.css"></link><link rel="stylesheet" type="text/css" href="[CSS_PROTOCOL]://[CSS_DOMAIN]/$host.debug/ab2p.css"></link>@iUD
 
 FILTER: ab2p-popup-filter
 s@[^'"\s]\s*<head[^>]*>(?=\s*[^'"\s])@$&<script type="text/javascript">parent==window&&opener&&close()</script>@iUD

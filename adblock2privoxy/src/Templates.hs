@@ -43,10 +43,12 @@ writeTemplateFiles outDir cssDomain useHTTP = do
                 lns = lines content
                 replace' line (from, to) = replace from to line
                 filterLine line
-                        | null cssDomain && (startswith "[?CSS_DOMAIN]" line || startswith "[?CSS_DOMAIN_DEBUG]" line) = ""
-                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[?CSS_DOMAIN_DEBUG]", "# "), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
+                        | null cssDomain && (startswith "[?CSS_DOMAIN]" line) = ""
+                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
+                        -- | null cssDomain && (startswith "[?CSS_DOMAIN]" line || startswith "[?CSS_DOMAIN_DEBUG]" line) = ""
+                        -- | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[?CSS_DOMAIN_DEBUG]", "# "), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
 
         copySystem file = do
                 dataDir <- getDataDir
-                content <- readFile $ dataDir  </> "templates" </> file
+                content <- readFile $ dataDir </> "templates" </> file
                 writeFile (outDir </> file) $ filterDomain content
