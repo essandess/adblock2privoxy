@@ -7,7 +7,6 @@ import Utils
 import ParsecExt
 import Control.Applicative hiding (many)
 import Text.ParserCombinators.Parsec hiding ((<|>),State)
-import Control.Monad
 import Data.List
 import Data.Maybe
 import Control.Monad.State
@@ -79,11 +78,11 @@ morseCharCodes = fst <$> morseChars
 
 -- HELLO = "......-...-..---"
 encodeMorse :: String -> String
-encodeMorse s = join $ fst <$> catMaybes (code <$> s)
+encodeMorse s = fst =<< mapMaybe code s
         where code c = find (\pair -> snd pair == c) morseChars
 
 decodeMorse :: [String] -> String
-decodeMorse ss = snd <$> catMaybes (code <$> ss)
+decodeMorse ss = snd <$> mapMaybe code ss
         where code s = find (\pair -> fst pair == s) morseChars
 
 
@@ -116,7 +115,7 @@ morseParsers :: [StringStateParser (ZipListM String)]
 morseParsers = repeat morseParser <*> [0 ..]
 
 parseMorse :: String -> Either ParseError [String]
-parseMorse s = (fmap.fmap) postProcess $ parseMorseRaw "x" s
+parseMorse s = fmap postProcess <$> parseMorseRaw "x" s
             where
             parseMorseRaw =  parse (cases morseParsers)
             postProcess = decodeMorse.toLists

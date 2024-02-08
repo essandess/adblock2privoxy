@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 module ProgramOptions
 (
 Options(..),
@@ -59,13 +61,13 @@ parseOptions :: [String] -> IO (Options, [String])
 parseOptions argv =
    case getOpt Permute options argv of
       (opts,nonOpts,[]  ) ->
-                case foldl (flip id) emptyOptions opts of
+                case foldr id emptyOptions opts of
                         Options False "" _ "" _ _ _ -> writeError "Privoxy dir or task file should be specified.\n"
                         opts'@Options{_showVersion = True} -> return (opts', nonOpts)
                         opts' -> return (setDefaults opts', nonOpts)
       (_,_,errs) -> writeError $ concat errs
    where
-        setDefaults opts@(Options _ (privoxyDir@(_:_)) "" _ _ _ _) = setDefaults opts{ _webDir = privoxyDir }
+        setDefaults opts@(Options _ privoxyDir@(_:_) "" _ _ _ _) = setDefaults opts{ _webDir = privoxyDir }
         setDefaults opts@(Options _ privoxyDir _ "" _ _ _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
         setDefaults opts = opts
 
@@ -100,7 +102,7 @@ emptyOptions = Options False "" "" "" "" False False
 
 
 fillFromLog :: Options -> [String] -> Options
-fillFromLog existing lns = execState (sequence $ parseLogOptions <$> lns') existing
+fillFromLog existing lns = execState (mapM parseLogOptions lns') existing
    where
    lns' = filter (not.null) $ takeWhile (/= endMark).dropWhile (/= startMark) $ lns
 

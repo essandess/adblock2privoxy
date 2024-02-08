@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 module ElementBlocker (
 elemBlock
 ) where
@@ -29,7 +31,7 @@ elemBlock path info = writeElemBlock . elemBlockData
                -- debugPath = path </> "debug"
            createDirectoryIfMissing True path
            cont <- getDirectoryContents path
-           _ <- sequence $ removeOld <$> cont
+           mapM_ removeOld cont
            -- createDirectoryIfMissing True debugPath
            -- writeBlockTree path debugPath rulesTree
            writeBlockTree path rulesTree
@@ -50,7 +52,7 @@ elemBlock path info = writeElemBlock . elemBlockData
             -- createDirectoryIfMissing True debugPath
             -- _ <- sequence (writeBlockTree normalPath debugPath <$> children)
             -- writePatterns ["See ab2p.common.css for sources info"] normalFilename debugFilename patterns
-            _ <- sequence (writeBlockTree normalPath <$> children)
+            mapM_ (writeBlockTree normalPath) children
             writePatterns ["See ab2p.common.css for sources info"] normalFilename patterns
         where
             normalPath
@@ -75,7 +77,7 @@ elemBlock path info = writeElemBlock . elemBlockData
                 do outFile <- openFile filename WriteMode
                    hSetEncoding outFile utf8
                    hPutStrLn outFile "/*"
-                   _ <- mapM (hPutStrLn outFile) info'
+                   mapM_ (hPutStrLn outFile) info'
                    hPutStrLn outFile "*/"
                    hPutStrLn outFile content
                    hClose outFile
@@ -92,7 +94,7 @@ elemBlock path info = writeElemBlock . elemBlockData
                 do outFile <- openFile filename WriteMode
                    hSetEncoding outFile utf8
                    hPutStrLn outFile "/*"
-                   _ <- mapM (hPutStrLn outFile) info'
+                   mapM_ (hPutStrLn outFile) info'
                    hPutStrLn outFile "*/"
                    hPutStrLn outFile content
                    hClose outFile

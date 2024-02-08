@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 module PatternConverter (
 makePattern,
 parseUrl
@@ -38,10 +40,10 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                     _  -> changeFirst.changeLast $ host
                     where
                     changeLast []                                   = []
-                    changeLast ('.' : '*' : [])
+                    changeLast ['.', '*']
                         | query' == ""                              = "."
                         | otherwise                                 = ".*"
-                    changeLast ('*' : '.' : [])
+                    changeLast ['*', '.']
                         | query' == ""                              = "*."
                         | otherwise                                 = "*.*"
                     changeLast [lst]
@@ -97,7 +99,7 @@ parseUrl =
     let  raw = makeUrls <$> bindStart <*> cases urlParts <*> bindEnd
     in   parse (join <$> (fmap.fmap) postfilter raw) "url"
     where
-        makeUrls start mid end = makeUrl <$> pure start <*> mid <*> pure end
+        makeUrls start mid end = (makeUrl start <$> mid) <*> pure end
         makeUrl start (proto, host, query) end = UrlPattern start proto (trimTrailingNul host) query end False
 
         bindStart = (try (Soft <$ string "||") <|> try (Hard <$ string "|") <|> return None) <?> "query start"
@@ -108,8 +110,8 @@ parseUrl =
         trimTrailingNul :: String -> String
         trimTrailingNul [] = []
         trimTrailingNul (c:cs)
-            | cs == [] && c == '\0' = []
-            | otherwise             = c : trimTrailingNul(cs)
+            | null cs && c == '\0' = []
+            | otherwise             = c : trimTrailingNul cs
 
         hostChar :: Parser Char
         hostChar = alphaNum <|> oneOf ".-:"

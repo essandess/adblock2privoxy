@@ -16,9 +16,9 @@ writeTask filename info lns =
         errorLine _ = []
     in do
         outFile <- openFile filename WriteMode
-        _ <- mapM (hPutStrLn outFile) info
-        _ <- sequence $ hPutStrLn outFile <$> statistics
-        _ <- sequence $ hPutStrLn outFile <$> (lns >>= errorLine)
+        mapM_ (hPutStrLn outFile) info
+        mapM_ (hPutStrLn outFile) statistics
+        mapM_ (hPutStrLn outFile) (lns >>= errorLine)
         hClose outFile
 
 readTask :: String -> IO [String]

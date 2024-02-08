@@ -8,6 +8,7 @@ import SourceInfo as Source
 import ProgramOptions as Options
 import System.Environment
 import Templates
+import Control.Monad
 import Data.Time.Clock
 import Network.HTTP.Conduit
 import Network.URI
@@ -25,7 +26,7 @@ getFileContent url = do
 processSources :: Options -> String -> [SourceInfo]-> IO ()
 processSources options taskFile sources = do
         manager <- newManager tlsManagerSettings
-        (parsed, sourceInfo) <- unzip <$> mapM (parseSource manager) sources
+        (parsed, sourceInfo) <- mapAndUnzipM (parseSource manager) sources
         let parsed' = concat parsed
             sourceInfoText = showInfo sourceInfo
             optionsText = logOptions options
@@ -78,7 +79,7 @@ main =  do
                         Nothing -> writeError "no input specified"
                         (Just task') -> do
                                 let sources = Source.readLogInfos task'
-                                if forced || or (infoExpired now <$> sources)
+                                if forced || any (infoExpired now) sources
                                         then processSources options' taskFile sources
                                         else putStrLn "all sources are up to date"
 

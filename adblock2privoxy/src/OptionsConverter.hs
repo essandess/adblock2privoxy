@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 module OptionsConverter (
     HeaderFilters,
     Filter (..),
@@ -7,6 +9,7 @@ module OptionsConverter (
 ) where
 import InputParser
 import Control.Monad
+import Data.Containers.ListUtils
 import Data.List
 import Data.Maybe
 import Data.String.Utils (replace)
@@ -70,7 +73,7 @@ convertOther (Restrictions positive negative)= Restrictions positive' negative'
 
 checkPassthrough :: RequestOptions -> Bool
 checkPassthrough RequestOptions {_requestType = (Restrictions positive _) }
-    = fromMaybe False $ (not . null . intersect [Subdocument, Popup]) <$> positive
+    = maybe False (not . null . intersect [Subdocument, Popup]) positive
 
 acceptFilter, contentTypeFilter, requestedWithFilter, refererFilter :: FilterFabrique
 
@@ -85,13 +88,13 @@ contentTypeFilter  policy (RequestOptions (Restrictions positive negative) third
     positivePart = positive >>= convert True
     result@(code, regex) = mconcat $ catMaybes [positivePart, negativePart]
     orEmpty = (policy == Unblock) && isNothing positive
-    emptyPositive = not . any (`notElem` (fromMaybe "" $ fst <$> negativePart)) . fst <$> positivePart
+    emptyPositive = not . any (`notElem` maybe "" fst negativePart) . fst <$> positivePart
 
     convert  _      []                        = Nothing
     convert include requestTypes | null code' = Nothing
                                  | otherwise  = Just (code', regex')
-        where   contentTypes' = nub $ requestTypes >>= contentTypes include
-                code' = sort $ (head . dropWhile (`elem` "/(?:x-)")) <$> contentTypes'
+        where   contentTypes' = nubOrd $ requestTypes >>= contentTypes include
+                code' = sort $ head . dropWhile (`elem` "/(?:x-)") <$> contentTypes'
                 regex' = lookahead contentTypes' "[\\s\\w]*" include
 
 acceptFilter excludePattern options = case contentTypeFilter excludePattern options of
@@ -109,9 +112,9 @@ requestedWithFilter _ RequestOptions{ _requestType = Restrictions positive negat
     result | Xmlhttprequest `elem` negative                                  = Just False
            | Xmlhttprequest `elem` fromMaybe [] positive                     = Just True
            | hasContentTypes False negative
-             && fromMaybe True (not . hasContentTypes True <$> positive)   = Just True
+             && maybe True (not . hasContentTypes True) positive = Just True
            | otherwise                                                       = Nothing
-    hasContentTypes include = not . all null . fmap (contentTypes include)
+    hasContentTypes include = not . all (null . contentTypes include)
 
 
 refererFilter policy RequestOptions{ _thirdParty = thirdParty, _domain = Restrictions positive negative }

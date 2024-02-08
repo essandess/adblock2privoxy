@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 module InputParser (
 Line (..),
 Restrictions (..),
@@ -17,6 +19,8 @@ import Text.ParserCombinators.Parsec hiding (Line, many, optional)
 import Data.List.Utils (split)
 import Data.List
 import Data.Char
+import Data.Containers.ListUtils
+import Data.Functor
 import Data.Monoid
 import Control.Monad
 import Text.Parsec.Permutation
@@ -40,7 +44,7 @@ data Record =   Error String |
 
 data RequestType =  Script | Image | Stylesheet | Object | Xmlhttprequest | Popup |
                     ObjectSubrequest | Subdocument | Document | Other
-                    deriving (Read, Show,Eq)
+                    deriving (Read,Show,Eq,Ord)
 
 data RequestOptions = RequestOptions {
                             _requestType :: Restrictions RequestType,
@@ -62,7 +66,7 @@ type Domain = String
 data Restrictions a = Restrictions {
                           _positive :: Maybe [a],
                           _negative :: [a]}
-        deriving (Read,Show,Eq)
+        deriving (Read,Show,Eq,Ord)
 
 recordSourceText :: RecordSource -> String
 recordSourceText (RecordSource position rawRecord)
@@ -98,14 +102,14 @@ match :: Parser Record
 match = RequestBlock <$> excludeMatch <*> pattern <*> options
     where
         excludeMatch = option Block $ Unblock <$ count 2 (char '@')
-        patternEnd = try (return () <* char '$' <* requestOptions <* lineEnd) <|> try (return () <* lineEnd)
+        patternEnd = try (void (char '$') <* requestOptions <* lineEnd) <|> try (void lineEnd)
         pattern = manyTill (noneOf "#") (lookAhead patternEnd)
         options = option '$' (char '$') *> requestOptions
 
 comment :: Parser Record
 comment = Comment <$> (separatorLine <|> commentText)
             where commentText = char '!' *> many notLineEnd
-                  separatorLine = lookAhead lineEnd *> return ""
+                  separatorLine = lookAhead lineEnd $> ""
 
 unknown :: Parser Record
 unknown = Error "Record type detection failed" <$ skipMany notLineEnd
@@ -130,7 +134,7 @@ requestOptions = runPermParser $ RequestOptions
         unknownOption = manyPerm $ try optionName
 
 requestOption :: String -> Parser All
-requestOption name = All <$> option True (char '~' *> return False) <* checkOptionName name
+requestOption name = All <$> option True (char '~' $> False) <* checkOptionName name
 
 
 
@@ -151,14 +155,14 @@ optionName = asOptionName <$> ((:) <$> letter <*> many (alphaNum <|> char '-'))
                      capitalize [] = ""
                      capitalize (x:xs) = toUpper x:(toLower<$>xs)
                      ws = split "-"
-                     asOptionName = join.liftA capitalize.ws
+                     asOptionName = capitalize <=< ws
 
 checkOptionName :: String -> Parser ()
 checkOptionName name =  do t <- optionName
                            when (name /= t) (pzero <?> "option type")
 
 domain :: Parser Domain
-domain = join <$> intersperse "." <$> parts
+domain = join . intersperse "." <$> parts
             where
             parts = sepBy1 domainPart (char '.')
             domainPart = many1 (alphaNum <|> char '-')
@@ -196,10 +200,10 @@ getAllOrFalse list = getAll $ mconcat list
 noRestrictions :: Restrictions a
 noRestrictions = Restrictions Nothing []
 
-fixRestrictions :: (Eq a) => Restrictions a -> Restrictions a
+fixRestrictions :: (Eq a, Ord a) => Restrictions a -> Restrictions a
 fixRestrictions = deduplicate.allowAll
         where
         allowAll (Restrictions (Just []) n) = Restrictions Nothing n
         allowAll a = a
-        deduplicate (Restrictions (Just p) n) = Restrictions (Just $ nub p) (nub n)
+        deduplicate (Restrictions (Just p) n) = Restrictions (Just $ nubOrd p) (nubOrd n)
         deduplicate a = a
