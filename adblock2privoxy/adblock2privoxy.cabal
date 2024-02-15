@@ -12,7 +12,7 @@ extra-source-files:
                 stack.yaml
                 README.rst
                 INSTALL.rst
-                changelog
+                CHANGELOG.md
                 man/man1/adblock2privoxy.1
                 distribution/rpmbuild/SPECS/adblock2privoxy.spec
                 distribution/buildWin.bat
