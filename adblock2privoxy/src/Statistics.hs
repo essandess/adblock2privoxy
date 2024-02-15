@@ -4,14 +4,13 @@ module Statistics (
 import qualified Data.Map as Map
 import InputParser
 import Data.Maybe
-import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 
 type Stat = Map.Map String Int
 
 collectStat :: [Line] -> [String]
-collectStat = liftA resultLine . Map.toAscList . foldr getStat Map.empty
+collectStat = fmap resultLine . Map.toAscList . foldr getStat Map.empty
         where
         resultLine (name, value) = concat [name, ": ", show value]
 

@@ -1,3 +1,7 @@
+2.3.0
+	* hlint mods
+	* Add debug code with new DebugLevel option
+
 2.2.0
 	* Remove unused debug code
 

@@ -39,7 +39,7 @@ type StateParser st = StateT (Maybe st) Parser
 type CasesParser st r = RWST () [r] String (StateParser st)
 
 optionMaybeTry :: StateParser st a -> StateParser st (Maybe a)
-optionMaybeTry p = liftM Just (mapStateT try p) <|> return Nothing
+optionMaybeTry p = fmap Just (mapStateT try p) <|> return Nothing
 
 cases :: forall r st.(Monoid r) => [StateParser st r] -> Parser [r]
 cases parsers =  evalStateT stateParser Nothing

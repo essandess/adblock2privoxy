@@ -105,6 +105,8 @@ If no source URLs are specified, task file is used to determine sources: previou
   Domain of CSS web server (required for Element Hide functionality)
 -u, --useHTTP
   Use HTTP for CSS web server; the default is HTTPS to avoid mixed content
+-g INT, --debugLevel=INT
+  Debug Level. 0: Off; 1: top directory CSS; 2: full directory.
 -t PATH, --taskFile=PATH
   Path to task file containing urls to process and options.
 -f, --forced

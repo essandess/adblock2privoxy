@@ -1,20 +1,32 @@
+{-# LANGUAGE StrictData #-}
+
 module ProgramOptions
 (
 Options(..),
+DebugLevel(DebugLevel),
 fillFromLog,
 parseOptions,
 logOptions,
 writeError,
 versionText
 ) where
+import Paths_adblock2privoxy (version)
 import Control.Monad.State
 import Control.Applicative hiding (many)
 import Text.ParserCombinators.Parsec hiding ((<|>),State,Line)
 import System.Console.GetOpt
-import System.FilePath
-import Paths_adblock2privoxy (version)
+import System.FilePath ( (</>) )
 import Data.Version (showVersion)
 
+
+newtype DebugLevel = DebugLevel Int deriving (Enum, Eq, Ord, Show)
+
+readDebugLevel :: String -> DebugLevel
+readDebugLevel x = fst $ parseDebugLevel (reads x :: [(Int, String)]) where
+     parseDebugLevel :: [(Int, String)] -> (DebugLevel, IO ())
+     parseDebugLevel y = case y of
+          [(dl,"")] -> (DebugLevel dl, return ())
+          _         -> (DebugLevel 0, writeError "Debug level must be an integer.\n")
 
 data Options = Options
      { _showVersion :: Bool
@@ -23,6 +35,7 @@ data Options = Options
      , _taskFile    :: FilePath
      , _cssDomain   :: String
      , _useHTTP     :: Bool
+     , _debugLevel  :: DebugLevel
      , _forced      :: Bool
      }
 
@@ -46,6 +59,10 @@ options =
      , Option "u"   ["useHTTP"]
          (NoArg (\ opts -> opts { _useHTTP = True }))
          "Use HTTP for CSS web server; the default is HTTPS to avoid mixed content"
+     , Option "g"   ["debugLevel"]
+         (ReqArg (\ dL opts -> opts { _debugLevel = readDebugLevel dL })
+                 "INT")
+         "Debug Level. 0: Off; 1: top directory CSS; 2: full directory."
      , Option "t"   ["taskFile"]
          (ReqArg (\ f opts -> opts { _taskFile = f })
                  "PATH")
@@ -59,14 +76,14 @@ parseOptions :: [String] -> IO (Options, [String])
 parseOptions argv =
    case getOpt Permute options argv of
       (opts,nonOpts,[]  ) ->
-                case foldl (flip id) emptyOptions opts of
-                        Options False "" _ "" _ _ _ -> writeError "Privoxy dir or task file should be specified.\n"
+                case foldr id emptyOptions opts of
+                        Options False "" _ "" _ _ _ _ -> writeError "Privoxy dir or task file should be specified.\n"
                         opts'@Options{_showVersion = True} -> return (opts', nonOpts)
                         opts' -> return (setDefaults opts', nonOpts)
       (_,_,errs) -> writeError $ concat errs
    where
-        setDefaults opts@(Options _ (privoxyDir@(_:_)) "" _ _ _ _) = setDefaults opts{ _webDir = privoxyDir }
-        setDefaults opts@(Options _ privoxyDir _ "" _ _ _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
+        setDefaults opts@(Options _ privoxyDir@(_:_) "" _ _ _ _ _) = setDefaults opts{ _webDir = privoxyDir }
+        setDefaults opts@(Options _ privoxyDir _ "" _ _ _ _) = setDefaults opts{ _taskFile = privoxyDir </> "ab2p.task" }
         setDefaults opts = opts
 
 versionText :: String
@@ -96,11 +113,11 @@ endMark :: String
 endMark = "------- end ------"
 
 emptyOptions :: Options
-emptyOptions = Options False "" "" "" "" False False
+emptyOptions = Options False "" "" "" "" False (DebugLevel 0) False
 
 
 fillFromLog :: Options -> [String] -> Options
-fillFromLog existing lns = execState (sequence $ parseLogOptions <$> lns') existing
+fillFromLog existing lns = execState (mapM parseLogOptions lns') existing
    where
    lns' = filter (not.null) $ takeWhile (/= endMark).dropWhile (/= startMark) $ lns
 

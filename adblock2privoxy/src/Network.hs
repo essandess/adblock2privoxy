@@ -4,7 +4,6 @@ module Network (
 where
 
 import Network.HTTP.Conduit
-import Control.Monad (liftM)
 import Data.Text.Lazy.Encoding
 import Data.Text.Lazy
 import Control.Exception
@@ -16,7 +15,7 @@ downloadHttp manager retries url = do
                 req <- parseUrlThrow url  -- parseUrl
                 let req' = req
                 -- let req' = req {responseTimeoutMicro = Just 15000000}
-                result <- try $ liftM responseBody $ httpLbs req' manager
+                result <- try (responseBody <$> httpLbs req' manager)
                 case result of
                     Left e@(HttpExceptionRequest _ (ConnectionFailure _)) ->
                     -- Left e@(FailedConnectionException _ _) ->

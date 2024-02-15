@@ -3,6 +3,7 @@ import  {-# SOURCE #-}  UrlBlocker
 import Paths_adblock2privoxy
 import System.FilePath ((</>))
 import Data.String.Utils (replace, startswith)
+import Data.Foldable
 
 blockCss, ab2pPrefix, actionsFilePrefix, filtersFilePrefix :: String
 blockCss = "{display:none!important;visibility:hidden!important}"
@@ -30,7 +31,7 @@ terminalActionSwitch _ _ = ""
 
 cssProtocol :: Bool -> String
 cssProtocol useHTTP
-        | useHTTP == True = "http"
+        | useHTTP         = "http"
         | otherwise       = "https"
 
 writeTemplateFiles :: String -> String -> Bool -> IO ()
@@ -43,10 +44,10 @@ writeTemplateFiles outDir cssDomain useHTTP = do
                 lns = lines content
                 replace' line (from, to) = replace from to line
                 filterLine line
-                        | null cssDomain && (startswith "[?CSS_DOMAIN]" line) = ""
-                        | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
+                        | null cssDomain && startswith "[?CSS_DOMAIN]" line = ""
+                        | otherwise = foldl' replace' line [("[?CSS_DOMAIN]", ""), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
                         -- | null cssDomain && (startswith "[?CSS_DOMAIN]" line || startswith "[?CSS_DOMAIN_DEBUG]" line) = ""
-                        -- | otherwise = foldl replace' line [("[?CSS_DOMAIN]", ""), ("[?CSS_DOMAIN_DEBUG]", "# "), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
+                        -- | otherwise = foldl' replace' line [("[?CSS_DOMAIN]", ""), ("[?CSS_DOMAIN_DEBUG]", "# "), ("[CSS_DOMAIN]", cssDomain), ("[CSS_PROTOCOL]", cssProtocol useHTTP)]
 
         copySystem file = do
                 dataDir <- getDataDir

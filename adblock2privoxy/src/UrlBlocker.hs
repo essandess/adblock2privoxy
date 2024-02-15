@@ -1,3 +1,5 @@
+{-# LANGUAGE StrictData #-}
+
 module UrlBlocker (
 BlockMethod(..),
 TaggerType(..),
@@ -47,7 +49,7 @@ urlBlock path info = writeBlockData . urlBlockData
          do outFile <- openFile filename WriteMode
             hSetEncoding outFile utf8
             hPutStrLn outFile header
-            _ <- mapM (hPutStrLn outFile) $ ('#':) <$> info
+            mapM_ (hPutStrLn outFile) $ ('#' :) <$> info
             hPutStrLn outFile $ intercalate "\n\n" $ show <$> content
             hClose outFile
 
@@ -58,10 +60,10 @@ urlBlockData lns = filterBlockData result
     cmpPolicy node1 node2 = compare (_policy node1) (_policy node2)
     blockLines = lns >>= blockLine
         where
-        blockLine (Line position (RequestBlock policy pattern options))
+        blockLine (Line position (RequestBlock policy pttrn options))
             = filteringNodes policy (errorToPattern expandedPatterns) options
             where
-            expandedPatterns = makePattern (_matchCase options) <<$> parseUrl pattern
+            expandedPatterns = makePattern (_matchCase options) <<$> parseUrl pttrn
             sourceText = recordSourceText position
             errorToPattern (Left parseError) = ["# ERROR: " ++ sourceText  ++ " - " ++ show parseError]
             errorToPattern (Right patterns') = ("# " ++ sourceText) : patterns'
@@ -124,7 +126,7 @@ filteringNodes policy patterns requestOptions
         foundTypes <- filter (== singleType) <$> _positive requestType
         foundType <- listToMaybe foundTypes
         return requestOptions {_requestType = requestType { _positive = Just [foundType] } }
-    optionsToNodes options = collectNodes patterns <$> headerFilters policy 2 <$> options
+    optionsToNodes options = collectNodes patterns . headerFilters policy 2 <$> options
     nestedOrRegular True = Nested
     nestedOrRegular False = Regular
     collectNodes :: [Pattern] -> Maybe HeaderFilters -> BlockMethod -> [FilteringNode]
@@ -207,16 +209,18 @@ instance Named Tagger where
 instance Show Tagger where
     show (Tagger code forwarding HeaderType {_name = headerName, _taggerType =  taggerType })
         = intercalate "\n" (caption : (forward <$> forwarding))
-        where caption = show taggerType ++ (':' : ' ' : code)
-              forward (Forward (Just filter') tagret) = forwardRegex headerName (_regex filter') ":" "" tagret
-              forward (Forward Nothing tagret) = forwardRegex "" "" "" "" tagret
+        where caption = show taggerType ++ ": " ++ code
+              forward (Forward (Just filter') target) = forwardRegex headerName (_regex filter') ":" "" target
+              forward (Forward Nothing target) = forwardRegex "" "" "" "" target
               forward (CancelTagger taggerCode) = forwardRegex headerName "" ":" "-" taggerCode
-              forwardRegex header expression value tagPrefix tagret
-                = let  (modifier, lookahead' : additionalLines)
-                            | '\n' `elem` expression = ("i", split "\n" expression) -- the case for third-party
-                            | otherwise              = ("Ti", [expression])
+              forwardRegex header expression value tagPrefix target
+                = let (modifier, lookahead', additionalLines) 
+                        = case split "\n" expression of
+                            [x]    -> ("Ti", x, [])
+                            (x:xs) -> ("i", x, xs) -- the case for third-party
+                            _      -> ("Ti", expression, [])
                   in intercalate "\n" $ additionalLines ++
-                        [join ["s@^", header, lookahead', value, ".*@", tagPrefix, tagret, "@", modifier]]
+                        [join ["s@^", header, lookahead', value, ".*@", tagPrefix, target, "@", modifier]]
 
 instance Named Bool where
     name True = "+"

@@ -1,9 +1,12 @@
+{-# LANGUAGE StrictData #-}
+
 module ElementBlocker (
 elemBlock
 ) where
 import InputParser hiding (Policy(..))
 import qualified InputParser
 import PolicyTree
+import ProgramOptions (DebugLevel(DebugLevel))
 import qualified Data.Map as Map
 import Data.Maybe
 import Utils
@@ -19,51 +22,45 @@ import Data.String.Utils (startswith)
 type BlockedRulesTree = DomainTree [Pattern]
 data ElemBlockData = ElemBlockData [Pattern] BlockedRulesTree deriving Show
 
-elemBlock :: String -> [String] -> [Line] -> IO ()
-elemBlock path info = writeElemBlock . elemBlockData
+elemBlock :: String -> [String] -> DebugLevel -> [Line] -> IO ()
+elemBlock path info debug = writeElemBlock . elemBlockData
     where
     writeElemBlock :: ElemBlockData -> IO ()
     writeElemBlock (ElemBlockData flatPatterns rulesTree) =
         do
-           let filteredInfo = filter ((||) <$> not . startswith "Url:" <*> startswith "Url: http") info
-               -- debugPath = path </> "debug"
+           let debugPath = path </> "debug"
+               filteredInfo = filter ((||) <$> not . startswith "Url:" <*> startswith "Url: http") info
            createDirectoryIfMissing True path
            cont <- getDirectoryContents path
-           _ <- sequence $ removeOld <$> cont
-           -- createDirectoryIfMissing True debugPath
-           -- writeBlockTree path debugPath rulesTree
-           writeBlockTree path rulesTree
-           writePatterns_with_debug filteredInfo (path </> "ab2p.common.css") "" flatPatterns
-           -- writePatterns_with_debug filteredInfo (path </> "ab2p.common.css") (debugPath </> "ab2p.common.css") flatPatterns
+           mapM_ removeOld cont
+           when (debug > DebugLevel 0) $ createDirectoryIfMissing True debugPath
+           writeBlockTree path debugPath rulesTree
+           writePatterns filteredInfo (path </> "ab2p.common.css") (if debug > DebugLevel 0 then debugPath </> "ab2p.common.css" else "") flatPatterns
     removeOld entry' =
         let entry = path </> entry'
         in do
            isDir <- doesDirectoryExist entry
            if isDir then when (head entry' /= '.') $ removeDirectoryRecursive entry
                     else when (takeExtension entry == ".css") $ removeFile entry
-    -- writeBlockTree :: String -> String -> BlockedRulesTree -> IO ()
-    -- writeBlockTree normalNodePath debugNodePath (Node name patterns children) =
-    writeBlockTree :: String -> BlockedRulesTree -> IO ()
-    writeBlockTree normalNodePath (Node name patterns children) =
+    writeBlockTree :: String -> String -> BlockedRulesTree -> IO ()
+    writeBlockTree normalNodePath debugNodePath (Node name patterns children) =
         do
             createDirectoryIfMissing True normalPath
-            -- createDirectoryIfMissing True debugPath
-            -- _ <- sequence (writeBlockTree normalPath debugPath <$> children)
-            -- writePatterns ["See ab2p.common.css for sources info"] normalFilename debugFilename patterns
-            _ <- sequence (writeBlockTree normalPath <$> children)
-            writePatterns ["See ab2p.common.css for sources info"] normalFilename patterns
+            when (debug > DebugLevel 1) $ createDirectoryIfMissing True debugPath
+            mapM_ (writeBlockTree normalPath debugPath) children
+            writePatterns ["See ab2p.common.css for sources info"] normalFilename (if debug > DebugLevel 1 then debugFilename else "") patterns
         where
             normalPath
                 | null name = normalNodePath
                 | otherwise = normalNodePath </> name
-            -- debugPath
-            --     | null name = debugNodePath
-            --     | otherwise = debugNodePath </> name
+            debugPath
+                | null name = debugNodePath
+                | otherwise = debugNodePath </> name
             normalFilename = normalPath </> "ab2p.css"
-            -- debugFilename = debugPath </> "ab2p.css"
-    writePatterns_with_debug :: [String] -> String -> String -> [Pattern] -> IO ()
-    writePatterns_with_debug _ _ _ [] = return ()
-    writePatterns_with_debug info' normalFilename debugFilename patterns =
+            debugFilename = debugPath </> "ab2p.css"
+    writePatterns :: [String] -> String -> String -> [Pattern] -> IO ()
+    writePatterns _ _ _ [] = return ()
+    writePatterns info' normalFilename debugFilename patterns =
          do
             writeCssFile normalFilename $ intercalate "\n" ((++ Templates.blockCss) . intercalate "," <$>
                     splitEvery 4000 patterns)
@@ -75,24 +72,7 @@ elemBlock path info = writeElemBlock . elemBlockData
                 do outFile <- openFile filename WriteMode
                    hSetEncoding outFile utf8
                    hPutStrLn outFile "/*"
-                   _ <- mapM (hPutStrLn outFile) info'
-                   hPutStrLn outFile "*/"
-                   hPutStrLn outFile content
-                   hClose outFile
-    writePatterns :: [String] -> String -> [Pattern] -> IO ()
-    writePatterns _ _ [] = return ()
-    writePatterns info' normalFilename patterns =
-         do
-            -- writeCssFile debugFilename $ intercalate "\n" $ (++ Templates.blockCss) <$> patterns
-            writeCssFile normalFilename $ intercalate "\n" ((++ Templates.blockCss) . intercalate "," <$>
-                                                                            splitEvery 4000 patterns)
-         where
-         splitEvery n = takeWhile (not . null) . unfoldr (Just . splitAt n)
-         writeCssFile filename content =
-                do outFile <- openFile filename WriteMode
-                   hSetEncoding outFile utf8
-                   hPutStrLn outFile "/*"
-                   _ <- mapM (hPutStrLn outFile) info'
+                   mapM_ (hPutStrLn outFile) info'
                    hPutStrLn outFile "*/"
                    hPutStrLn outFile content
                    hClose outFile
