@@ -34,7 +34,7 @@ processSources options taskFile sources = do
         writeTask taskFile (sourceInfoText ++ optionsText) parsed'
         if null._cssDomain $ options
                 then putStrLn "WARNING: CSS generation is not run because webserver domain is not specified"
-                else elemBlock (_webDir options) sourceInfoText parsed'
+                else elemBlock (_webDir options) sourceInfoText (_debugLevel options) parsed'
         urlBlock (_privoxyDir options) sourceInfoText parsed'
         writeTemplateFiles (_privoxyDir options) (_cssDomain options) (_useHTTP options)
         putStrLn $ "Run 'adblock2privoxy -t " ++ taskFile ++ "' every 1-2 days to process data updates."
@@ -63,7 +63,7 @@ main =  do
         setForeignEncoding utf8
         now <- getCurrentTime
         args <- getArgs
-        (options@(Options printVersion _ _ taskFile _ _ forced), urls) <- parseOptions args
+        (options@(Options printVersion _ _ taskFile _ _ _ forced), urls) <- parseOptions args
         (options', task) <- do
                 fileExists <- doesFileExist taskFile
                 if fileExists
@@ -82,7 +82,9 @@ main =  do
                                 if forced || any (infoExpired now) sources
                                         then processSources options' taskFile sources
                                         else putStrLn "all sources are up to date"
-
+            debug = _debugLevel options
+        when (debug > DebugLevel 0) $
+            putStrLn $ concat ["Debug level '", show debug, "'."]
         action
         now' <- getCurrentTime
         putStrLn $ concat ["Execution done in ", show $ diffUTCTime now' now, " seconds."]
