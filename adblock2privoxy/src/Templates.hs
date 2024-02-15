@@ -8,8 +8,8 @@ import Data.Foldable
 blockCss, ab2pPrefix, actionsFilePrefix, filtersFilePrefix :: String
 blockCss = "{display:none!important;visibility:hidden!important}"
 ab2pPrefix = "ab2p-"
-actionsFilePrefix = "#AbBlock generated actions -- don't edit --"
-filtersFilePrefix = "#AbBlock generated filters -- don't edit --"
+actionsFilePrefix = "#AdBlock generated actions -- don't edit --"
+filtersFilePrefix = "#AdBlock generated filters -- don't edit --"
 
 terminalActionSwitch :: Bool -> BlockMethod -> String
 terminalActionSwitch True Request =

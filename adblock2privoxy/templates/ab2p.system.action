@@ -1,4 +1,4 @@
-#AbBlock system actions -- don't edit --
+#AdBlock system actions -- don't edit --
 
 {+set-image-blocker{blank} \
 [?CSS_DOMAIN] +filter{ab2p-elemhide-filter} \
