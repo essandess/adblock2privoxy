@@ -12,8 +12,8 @@ import Control.Monad
 import Data.Containers.ListUtils
 import Data.List
 import Data.Maybe
-import Data.String.Utils (replace)
 import {-# SOURCE #-}  UrlBlocker
+import Utils (replace)
 
 type FilterFabrique = Policy -> RequestOptions -> HeaderPolicy
 data HeaderType = HeaderType {_name :: String, _taggerType :: TaggerType, _level :: Int,
@@ -94,7 +94,7 @@ contentTypeFilter  policy (RequestOptions (Restrictions positive negative) third
     convert include requestTypes | null code' = Nothing
                                  | otherwise  = Just (code', regex')
         where   contentTypes' = nubOrd $ requestTypes >>= contentTypes include
-                code' = sort $ head . dropWhile (`elem` "/(?:x-)") <$> contentTypes'
+                code' = sort $ mapMaybe (listToMaybe . dropWhile (`elem` "/(?:x-)")) contentTypes'
                 regex' = lookahead contentTypes' "[\\s\\w]*" include
 
 acceptFilter excludePattern options = case contentTypeFilter excludePattern options of

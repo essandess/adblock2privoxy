@@ -2,8 +2,8 @@ module Templates where
 import  {-# SOURCE #-}  UrlBlocker
 import Paths_adblock2privoxy
 import System.FilePath ((</>))
-import Data.String.Utils (replace, startswith)
 import Data.Foldable
+import Utils (replace, startswith)
 
 blockCss, ab2pPrefix, actionsFilePrefix, filtersFilePrefix :: String
 blockCss = "{display:none!important;visibility:hidden!important}"

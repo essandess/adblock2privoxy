@@ -12,6 +12,10 @@ maxList,
 minList,
 compareList,
 appendIf,
+replace,
+split,
+startswith,
+mergeBalanced,
 pure',
 pure'',
 (<<$>),
@@ -26,10 +30,21 @@ pure'',
 import Control.Applicative hiding (many)
 import Control.Monad.State
 import Data.Monoid
+import Data.List (isPrefixOf)
+import Data.List.Extra (replace, splitOn)
+
 
 ------------------------------------------------------------------------------------------
 ----------------------------- export -----------------------------------------------------
 ------------------------------------------------------------------------------------------
+
+-- export @Data.List.isPrefixOf@ under the original name
+startswith :: Eq a => [a] -> [a] -> Bool
+startswith = isPrefixOf
+
+-- export @Data.List.Extra.splitOn@ under the original name
+split :: Eq a => [a] -> [a] -> [[a]]
+split = splitOn
 
 -- at least one list should be finite
 compareList :: Ord a => [a] -> [a] -> Ordering
@@ -50,6 +65,14 @@ appendIf :: Bool -> a -> [a] -> [a]
 appendIf condition item list
     | condition = item : list
     | otherwise = list
+
+-- Combine values using divide-and-conquer rather than linear folds
+mergeBalanced :: (a -> a -> a) -> [a] -> a
+mergeBalanced _ [x] = x
+mergeBalanced f xs   = mergeBalanced f (pairUp xs)
+    where
+    pairUp (a:b:rest) = f a b : pairUp rest
+    pairUp rest       = rest
 
 newtype ZipListM a = ZipListM { getZipList' :: ZipList a } deriving (Functor, Applicative)
 getZipListM :: ZipListM a -> [a]

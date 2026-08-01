@@ -6,17 +6,36 @@ parseUrl
 ) where
 import InputParser
 import Control.Applicative hiding (many)
+import Control.Monad (guard)
 import Text.ParserCombinators.Parsec hiding (Line, (<|>))
 import Control.Monad
 import Control.Monad.State
 import Data.List
+import Data.Char (isAlphaNum)
 import Data.Maybe
-import Data.String.Utils (replace)
-import Data.List.Utils (split)
 import ParsecExt
 import Utils
 
+
 data SideBind = Hard | Soft | None deriving (Show, Eq)
+
+-- Check if a pattern contains PCRE features unsupported by Privoxy
+hasUnsupportedPCRE :: String -> Bool
+hasUnsupportedPCRE pattern =
+    any (`isInfixOf` pattern)
+        [ "(?="   -- positive lookahead
+        , "(?!"   -- negative lookahead
+        , "(?<="  -- positive lookbehind
+        , "(?<!"  -- negative lookbehind
+        , "(?()"  -- conditional
+        , "(?P<"  -- named capture (Python style)
+        , "(?'"   -- named capture (Perl style)
+        , "(*"    -- backtracking control verbs (*PRUNE), (*SKIP), etc.
+        ]
+
+-- Maximum reasonable pattern length for Privoxy
+maxPatternLength :: Int
+maxPatternLength = 8000
 
 data UrlPattern = UrlPattern {
                    _bindStart :: SideBind,
@@ -30,14 +49,25 @@ data UrlPattern = UrlPattern {
 makePattern :: Bool -> UrlPattern -> Pattern
 makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
             | query' == "" = host'
+            -- Filter out patterns with unsupported PCRE
+            | hasUnsupportedPCRE query' =
+                "# FILTERED: Pattern contains PCRE features unsupported by Privoxy (lookahead/lookbehind/etc.)"
+            -- Filter out excessively long patterns
+            | length fullPattern > maxPatternLength =
+                "# FILTERED: Pattern exceeds maximum length (" ++ show maxPatternLength ++ " chars)"
             | otherwise    = host' ++ separator' ++ query'
     where
+        fullPattern = host' ++ separator' ++ query'
         separator'
             | matchCase = "/(?-i)"
             | otherwise = "/"
+        -- Privoxy host pattern with FEATURE_PCRE_HOST_PATTERNS
         host' = case host of
                     "" -> ""
-                    _  -> changeFirst.changeLast $ host
+                    _  -> let hostGlob = changeFirst.changeLast $ host
+                          in if hostNeedsPCRE hostGlob
+                             then "PCRE-HOST-PATTERN:" ++ pcreHostPattern hostGlob
+                             else hostGlob
                     where
                     changeLast []                                   = []
                     changeLast ['.', '*']
@@ -50,7 +80,6 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                         | lst == '|' || lst `elem` hostSeparators   =  []
                         | lst == '*' && query' == ""                =  "*."
                         | lst == '*' && query' /= ""                =  "*"
-                        | lst == '.'                                =  "."
                         | otherwise                                 =  lst : "*."
                     changeLast (c:cs) = c : changeLast cs
 
@@ -70,7 +99,10 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                                 '*' : '^' : other' -> replaceQuery '^' other' True
                                 _                  -> replaceQuery start other (bindStart == None && host == "")
                               where
-                                replaceQuery c cs openStart = replaceFirst c openStart ++ (join . map replaceWildcard $ cs) ++ queryEnd
+                                -- replaceQuery c cs openStart = replaceFirst c openStart ++ (join . map replaceWildcard $ cs) ++ queryEnd
+                                replaceQuery c cs openStart = replaceFirst c openStart
+                                                              ++ concatMap renderChunk (tokenizeBracketClasses cs)
+                                                              ++ queryEnd
                                 {- http://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html -}
                                 replaceFirst '*' _ = "(*PRUNE).*?"
                                 replaceFirst c openStart
@@ -88,11 +120,55 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                                     | c == '*'         = "(*PRUNE).*?"
                                     | c `elem` special = '\\' : [c]
                                     | otherwise        = [c]
-                                    where special = "?$.+[]{}()\\|" -- also ^ and * are special
+                                    where special = "?$.+[{}()\\|" -- also ^ and * are special
+                                        -- Note: lone ']' outside a bracket class is not special in PCRE
 
+                                -- Split a query string into alternating plain-text runs and bracket character classes
+                                tokenizeBracketClasses :: String -> [Either String String]
+                                tokenizeBracketClasses [] = []
+                                tokenizeBracketClasses s@(x:xs)
+                                    | x == '[', Just (cls, rest) <- matchClass xs =
+                                        Right ('[' : cls ++ "]") : tokenizeBracketClasses rest
+                                    | otherwise =
+                                        let (plain, rest) = breakNextBracket s
+                                        in Left plain : tokenizeBracketClasses rest
+                                  where
+                                    -- Like 'break (== \'[\')', but always consumes at least the first character first.
+                                    breakNextBracket :: String -> (String, String)
+                                    breakNextBracket [] = ([], [])
+                                    breakNextBracket (c:cs) =
+                                        let (p, r) = break (== '[') cs in (c : p, r)
+                                    matchClass ys = case break (== ']') ys of
+                                       (body, ']':rest')
+                                           | not (null body) && all isClassChar body -> Just (body, rest')
+                                       _ -> Nothing
+                                    isClassChar ch = isAlphaNum ch || ch `elem` "-^"
+
+                                renderChunk :: Either String String -> String
+                                renderChunk (Left plain) = concatMap replaceWildcard plain
+                                renderChunk (Right cls)  = cls
 
 hostSeparators :: String
 hostSeparators = "^/"
+
+-- Privoxy's non-PCRE host glob syntax
+isPlainHostChar :: Char -> Bool
+isPlainHostChar c = isAlphaNum c || c `elem` "-.*?"
+
+hostNeedsPCRE :: String -> Bool
+hostNeedsPCRE = any (not . isPlainHostChar)
+
+-- Translate a host glob into an equivalent PCRE
+pcreHostPattern :: String -> String
+pcreHostPattern s = anchorStart ++ concatMap esc s ++ anchorEnd
+    where
+        anchorStart = if any (`isPrefixOf` s) ["*", "."] then "" else "^"
+        anchorEnd   = if any (`isSuffixOf` s) ["*", "."] then "" else "$"
+        {- http://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html -}
+        esc '*' = "(*PRUNE).*?"
+        esc '?' = "."
+        esc '.' = "\\."
+        esc c   = [c]
 
 parseUrl :: Pattern -> Either ParseError [UrlPattern]
 parseUrl =
@@ -105,7 +181,10 @@ parseUrl =
         bindStart = (try (Soft <$ string "||") <|> try (Hard <$ string "|") <|> return None) <?> "query start"
         queryEnd = (char '|' <* eof) <|> ('\0' <$ eof) <|> char '\0' <?> "query end"
         bindEnd = (\c -> if c == '|' then Hard else None) <$> queryEnd
-        port = option False $ many1 (noneOf ":") *> char ':' *> many1 (digit <|> char '*') *> optionMaybe (oneOf "/^") *> (True <$ queryEnd)
+
+        portSuffix :: Parser String
+        portSuffix = (:) <$> char ':' <*> many1 (digit <|> char '*')
+
 
         trimTrailingNul :: String -> String
         trimTrailingNul [] = []
@@ -114,7 +193,7 @@ parseUrl =
             | otherwise             = c : trimTrailingNul cs
 
         hostChar :: Parser Char
-        hostChar = alphaNum <|> oneOf ".-:"
+        hostChar = alphaNum <|> oneOf ".-"
 
         protocols :: [String]
         protocols = ["https://", "http://"]
@@ -142,13 +221,10 @@ parseUrl =
                              rightBound = be /= None || query /= ""
                              orphanQuery = leftBound && host == "" && query /= "" && not ("*" `isPrefixOf` query)
                              duplicateHostStar = host == "*"
-                             hostHasDot = isJust $ find (\c -> c == '.' || c == '*') host
-                             firstLevelHost = host /= "" && not hostHasDot && leftBound && rightBound
-                             hasLegalPort = case parse port "host" host of
-                                                Right val -> val
-                                                _ -> False
-                             hasIllegalPort = not hasLegalPort && ":" `isInfixOf` host
-                          in if not (orphanQuery || duplicateHostStar || firstLevelHost || hasIllegalPort)
+                             -- Do not block tld hosts, i.e. reject told-only here; n.b. independent of leftBound / rightBound to avoid partially-anchored TLD-only hosts
+                             hostLabels = filter (\l -> l /= "" && l /= "*") (split "." host)
+                             tldOnlyHost = host /= "" && length hostLabels < 2
+                          in if not (orphanQuery || tldOnlyHost)
                              then
                                 let
                                     query' = if "*" `isSuffixOf` host && query /= "" then '*' : query else query
@@ -190,7 +266,7 @@ parseUrl =
                                                                 else intercalate protocolsSeparator masks'
                                                 return $ if nextChar == '*' then chars ++ "*" else chars
                 host = try (append <$> many hostChar <*> char '*') <|>
-                       try (append <$> many1 hostChar <*> lookAhead separator) <?> "host"
+                       try ((++) <$> many1 hostChar <*> option "" (try portSuffix) <* lookAhead separator) <?> "host"
                 separator = (oneOf hostSeparators <|> queryEnd) <?> "separator"
                 query = notFollowedBy (try $ string "//") *> manyTill anyChar (lookAhead (try queryEnd)) <?> "query"
 

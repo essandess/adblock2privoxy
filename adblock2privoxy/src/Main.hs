@@ -17,6 +17,7 @@ import System.IO
 import Network
 import GHC.IO.Encoding
 
+
 getFileContent :: String -> IO String
 getFileContent url = do
     handle <- openFile url ReadMode
@@ -54,7 +55,7 @@ processSources options taskFile sources = do
                         in if url == url'
                            then return (parsed, sourceInfo')
                            else parseSource manager sourceInfo'
-                Left msg -> return ([], sourceInfo) <$ putStrLn $ show msg
+                Left msg -> ([], sourceInfo) <$ putStrLn (show msg)
 
 main::IO()
 main =  do

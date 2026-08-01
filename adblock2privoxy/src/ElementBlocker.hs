@@ -7,7 +7,7 @@ import InputParser hiding (Policy(..))
 import qualified InputParser
 import PolicyTree
 import ProgramOptions (DebugLevel(DebugLevel))
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 import Data.Maybe
 import Utils
 import System.IO
@@ -16,7 +16,7 @@ import Data.List
 import System.Directory
 import qualified Templates
 import Control.Monad
-import Data.String.Utils (startswith)
+import qualified Data.ByteString.Builder as BSB
 
 
 type BlockedRulesTree = DomainTree [Pattern]
@@ -40,13 +40,14 @@ elemBlock path info debug = writeElemBlock . elemBlockData
         let entry = path </> entry'
         in do
            isDir <- doesDirectoryExist entry
-           if isDir then when (head entry' /= '.') $ removeDirectoryRecursive entry
+           if isDir then when (not (startswith "." entry')) $ removeDirectoryRecursive entry
                     else when (takeExtension entry == ".css") $ removeFile entry
     writeBlockTree :: String -> String -> BlockedRulesTree -> IO ()
     writeBlockTree normalNodePath debugNodePath (Node name patterns children) =
         do
-            createDirectoryIfMissing True normalPath
-            when (debug > DebugLevel 1) $ createDirectoryIfMissing True debugPath
+            -- avoid traversing already-created ancestor chain
+            createDirectoryIfMissing False normalPath
+            when (debug > DebugLevel 1) $ createDirectoryIfMissing False debugPath
             mapM_ (writeBlockTree normalPath debugPath) children
             writePatterns ["See ab2p.common.css for sources info"] normalFilename (if debug > DebugLevel 1 then debugFilename else "") patterns
         where
@@ -68,37 +69,66 @@ elemBlock path info debug = writeElemBlock . elemBlockData
                 writeCssFile debugFilename $ intercalate "\n" $ (++ Templates.blockCss) <$> patterns
          where
          splitEvery n = takeWhile (not . null) . unfoldr (Just . splitAt n)
+         writeCssFile :: String -> String -> IO ()
          writeCssFile filename content =
-                do outFile <- openFile filename WriteMode
-                   hSetEncoding outFile utf8
-                   hPutStrLn outFile "/*"
-                   mapM_ (hPutStrLn outFile) info'
-                   hPutStrLn outFile "*/"
-                   hPutStrLn outFile content
+                do outFile <- openBinaryFile filename WriteMode
+                   -- Build the entire file as one Builder and issue a
+                   -- single hPutBuilder, instead of opening in text mode
+                   -- (forcing every hPutStrLn through the Handle's UTF-8
+                   -- transcoding layer) with 3+ separate small writes.
+                   -- For tens of thousands of small files this per-call,
+                   -- per-character overhead adds up substantially.
+                   BSB.hPutBuilder outFile $ mconcat
+                       [ BSB.stringUtf8 "/*\n"
+                       , foldMap (\l -> BSB.stringUtf8 l <> BSB.char7 '\n') info'
+                       , BSB.stringUtf8 "*/\n"
+                       , BSB.stringUtf8 content
+                       , BSB.char7 '\n'
+                       ]
                    hClose outFile
 
 elemBlockData :: [Line] -> ElemBlockData
 elemBlockData input = ElemBlockData
-                        (Map.foldrWithKey appendFlatPattern []              policyTreeMap)
-                        (Map.foldrWithKey appendTreePattern (Node "" [] []) policyTreeMap)
+                        (Map.foldrWithKey appendFlatPattern [] policyTreeMap)
+                        blockedRulesTree
     where
+    -- Per selector/pattern, group all the per-rule domain trees that share it,
+    -- then combine each group with ONE balanced merge (mergeBalanced) followed
+    -- by one trim. For a selector shared by k rules original was O(k^2) node
+    -- operations; this is O(k log k)
     policyTreeMap :: Map.Map String PolicyTree
     policyTreeMap =  Map.unionWith (trimTree Block .*. mergePolicyTrees Unblock)
                             blockLinesMap
                             (erasePolicy Block <$> unblockLinesMap)
         where
-        blockLinesMap = Map.fromListWith (mergeAndTrim Block) (mapMaybe blockLine input)
-        unblockLinesMap = Map.fromListWith (mergeAndTrim Unblock) (mapMaybe unblockLine input)
-        unblockLine (Line _ (ElementHide domains InputParser.Unblock pattern)) = (,) pattern <$> restrictionsTree Unblock domains
+        blockLinesMap   = trimTree Block   . mergeBalanced (mergePolicyTrees Block)   <$> blockGroups
+        unblockLinesMap = trimTree Unblock . mergeBalanced (mergePolicyTrees Unblock) <$> unblockGroups
+
+        blockGroups   = Map.fromListWith (++) (mapMaybe blockLine input)
+        unblockGroups = Map.fromListWith (++) (mapMaybe unblockLine input)
+
+        unblockLine (Line _ (ElementHide domains InputParser.Unblock pattern)) =
+            (\t -> (pattern, [t])) <$> restrictionsTree Unblock domains
         unblockLine _ = Nothing
-        blockLine (Line _ (ElementHide domains InputParser.Block pattern)) = (,) pattern <$> restrictionsTree Block domains
+        blockLine (Line _ (ElementHide domains InputParser.Block pattern)) =
+            (\t -> (pattern, [t])) <$> restrictionsTree Block domains
         blockLine _ = Nothing
 
-    appendTreePattern ::  Pattern -> PolicyTree -> BlockedRulesTree -> BlockedRulesTree
-    appendTreePattern pattern policyTree
-          | null $ _children policyTree     = id
-          | otherwise                       = mergeTrees appendPattern policyTree
-       where appendPattern policy patterns = case policy of
+    -- Same approach for the final tree
+    blockedRulesTree :: BlockedRulesTree
+    blockedRulesTree = case patternTrees of
+                          []  -> Node "" [] []
+                          ts  -> mergeBalanced (mergeTrees (++)) ts
+        where
+        patternTrees =
+            [ singleTree pattern policyTree
+            | (pattern, policyTree) <- Map.toList policyTreeMap ]
+
+        singleTree pattern policyTree
+            | null (_children policyTree) = Node "" [] []
+            | otherwise                   = mergeTrees appendPattern policyTree (Node "" [] [])
+            where
+            appendPattern policy patterns = case policy of
                                                 Block -> pattern:patterns
                                                 _     -> patterns
 

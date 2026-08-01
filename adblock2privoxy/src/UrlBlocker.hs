@@ -13,8 +13,7 @@ import OptionsConverter
 import Utils
 import Control.Monad.State
 import qualified Templates
-import qualified Data.Map as Map
-import Data.String.Utils (split)
+import qualified Data.Map.Strict as Map
 import Data.Maybe
 import System.IO
 import System.FilePath
@@ -45,26 +44,41 @@ urlBlock path info = writeBlockData . urlBlockData
     writeBlockData (taggers, actions) =
         do writeContent (path </> "ab2p.filter") Templates.filtersFilePrefix taggers
            writeContent (path </> "ab2p.action") Templates.actionsFilePrefix actions
+    writeContent :: Show a => String -> String -> [a] -> IO ()
     writeContent filename header content =
          do outFile <- openFile filename WriteMode
             hSetEncoding outFile utf8
+            -- Explicit block buffering: with millions of items this avoids
+            -- one syscall-worthy flush per line under whatever the default
+            -- buffering mode happens to be.
+            hSetBuffering outFile (BlockBuffering Nothing)
             hPutStrLn outFile header
             mapM_ (hPutStrLn outFile) $ ('#' :) <$> info
-            hPutStrLn outFile $ intercalate "\n\n" $ show <$> content
+            writeItemsSeparated outFile content
             hClose outFile
+    -- Stream each item's Show output straight to the handle
+    writeItemsSeparated :: Show a => Handle -> [a] -> IO ()
+    writeItemsSeparated _   []     = return ()
+    writeItemsSeparated out (x:xs) = do
+        hPutStr out (show x)
+        mapM_ (\y -> hPutStr out "\n\n" >> hPutStr out (show y)) xs
+        hPutStrLn out ""
 
 urlBlockData :: [Line] -> UrlBlockData
 urlBlockData lns = filterBlockData result
     where
-    result = mconcat [nodeResult node | node <- shortenNodes $ sortBy cmpPolicy $ filterNodesList blockLines]
-    cmpPolicy node1 node2 = compare (_policy node1) (_policy node2)
+    result = mconcat [nodeResult node | node <- shortenNodes $ blockPolicyOrder $ filterNodesList blockLines]
+    -- Use O(n) separation into (Block, Unblock) rather than O(n log n) sort
+    blockPolicyOrder nodes = blocked ++ unblocked
+        where (blocked, unblocked) = partition ((== Block) . _policy) nodes
     blockLines = lns >>= blockLine
         where
         blockLine (Line position (RequestBlock policy pttrn options))
             = filteringNodes policy (errorToPattern expandedPatterns) options
             where
-            expandedPatterns = makePattern (_matchCase options) <<$> parseUrl pttrn
+            expandedPatterns = filterValidPatterns $ makePattern (_matchCase options) <<$> parseUrl pttrn
             sourceText = recordSourceText position
+            filterValidPatterns = fmap (filter (not . startswith "# FILTERED:"))
             errorToPattern (Left parseError) = ["# ERROR: " ++ sourceText  ++ " - " ++ show parseError]
             errorToPattern (Right patterns') = ("# " ++ sourceText) : patterns'
         blockLine _ = []

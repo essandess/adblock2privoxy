@@ -20,14 +20,14 @@ import Data.Time.Calendar
 --import System.Locale
 import Data.Time.Format
 import Data.Maybe (catMaybes)
-import Data.String.Utils (split)
+import Utils (split)
 
 
 data SourceInfo = SourceInfo { _title, _url, _license, _homepage :: String,
-                               _lastUpdated :: UTCTime, _expires, _version :: Integer, _expired :: Bool }
+                               _lastUpdated :: UTCTime, _expires :: Integer, _version :: String, _expired :: Bool }
 
 emptySourceInfo :: SourceInfo
-emptySourceInfo = SourceInfo "" "" "" "" (UTCTime (ModifiedJulianDay 0) (secondsToDiffTime 0) ) 72 0 True
+emptySourceInfo = SourceInfo "" "" "" "" (UTCTime (ModifiedJulianDay 0) (secondsToDiffTime 0) ) 72 "" True
 
 separator :: String
 separator = "----- source -----"
@@ -45,7 +45,7 @@ showInfoItem sourceInfo@(SourceInfo _ url _ _ lastUpdated expires _ expired) =
                     Just $ "Url: " ++ url,
                     Just $ "Last modified: " ++ formatTime defaultTimeLocale "%d %b %Y %H:%M %Z" lastUpdated,
                     Just $ concat ["Expires: ", show expires, " hours", expiredMark],
-                    optionalLine "Version: " $ show . _version,
+                    optionalLine "Version: " _version,
                     optionalLine "License: " _license,
                     optionalLine "Homepage: " _homepage ]
     where
@@ -95,7 +95,7 @@ parseInfo text = do
         expiresParser = (\n unit -> info{_expires = unit * read n})
             <$> (string "Expires: " *> many1 digit) <*> (24 <$ string " days" <|> 1 <$ string " hours")
         versionnumber = intercalate "." <$> many1 digit `sepBy` char '.'
-        versionParser = (\x -> info{_version = read x}) <$> (string "Version: " *> versionnumber)
+        versionParser = (\x -> info{_version = x}) <$> (string "Version: " *> versionnumber)
         stringParser = skipMany (char ' ') *>
             (try urlParser <|> try titleParser <|> try expiresParser <|> try versionParser
               <|> try licenseParser <|> try homepageParser <|> try lastUpdatedParser)

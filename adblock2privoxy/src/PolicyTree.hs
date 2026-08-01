@@ -8,14 +8,13 @@ restrictionsTree,
 mergeTrees,
 mergePolicyTrees,
 trimTree,
-mergeAndTrim,
 erasePolicy
 
 ,domainTree
 ) where
 --import Control.Applicative
 import InputParser hiding (Policy(..))
-import Data.String.Utils (split)
+import Data.List (filter)
 import Utils
 
 data NodePolicy = None | Block | Unblock deriving (Eq, Show)
@@ -31,16 +30,38 @@ showTree lvl (Node name value children)
 instance Show a => Show (DomainTree a) where
     show = showTree 0
 
-restrictionsTree :: NodePolicy -> Restrictions Domain -> Maybe PolicyTree
-restrictionsTree positivePolicy (Restrictions p n) = trimTree positivePolicy <$> mergedTree
+-- Check against TLDs
+isValidDomain :: Domain -> Bool
+isValidDomain domain = length meaningfulLabels >= 2
     where
+        labels = split "." domain
+        meaningfulLabels = filter isMeaningful labels
+        isMeaningful label = label /= "" && label /= "*"
+
+-- Filter out invalid domains from a list
+filterValidDomains :: [Domain] -> [Domain]
+filterValidDomains = filter isValidDomain
+
+-- Filter out invalid domains from Restrictions
+filterValidRestrictions :: Restrictions Domain -> Restrictions Domain
+filterValidRestrictions (Restrictions positive negative) =
+    Restrictions (filterValidDomains <$> positive) (filterValidDomains negative)
+
+restrictionsTree :: NodePolicy -> Restrictions Domain -> Maybe PolicyTree
+restrictionsTree positivePolicy restrictions = trimTree positivePolicy <$> mergedTree
+    where
+    -- Filter out bare TLDs and invalid domains
+    Restrictions p n = filterValidRestrictions restrictions
     negativePolicy = case positivePolicy of
                         Block -> Unblock
                         _     -> Block
     positiveTree = case p of
-                        Nothing -> Just $ Node "" positivePolicy []
-                        Just p' -> concatTrees positivePolicy $ domainTree positivePolicy <$> p'
-    negativeTree = concatTrees negativePolicy $ domainTree negativePolicy <$> n
+                        Nothing  -> Just $ Node "" positivePolicy []
+                        Just []  -> Nothing  -- All domains were filtered out
+                        Just p'  -> concatTrees positivePolicy $ domainTree positivePolicy <$> p'
+    negativeTree = case n of
+                        []  -> Nothing
+                        n'  -> concatTrees negativePolicy $ domainTree negativePolicy <$> n'
     mergedTree = case negativeTree of
                     Nothing -> positiveTree
                     Just negativeTree' -> mergePolicyTrees negativePolicy negativeTree' <$> positiveTree
@@ -52,20 +73,18 @@ erasePolicy policy (Node n p c) = Node n policy' (erasePolicy policy <$> c)
             | otherwise     = p
 
 domainTree :: NodePolicy -> Domain -> PolicyTree
-domainTree policy domain = makeTree policy $ ("":) $ reverse $ split "." domain
+domainTree policy domain
+    | not (isValidDomain domain) = error $ "Invalid domain (TLD-only or insufficient labels): " ++ domain
+    | otherwise                  = makeTree policy $ ("":) $ reverse $ split "." domain
 
 makeTree :: NodePolicy -> [String] -> PolicyTree
 makeTree _ [] = error "No nodes proviced"
 makeTree policy [node] = Node node policy []
 makeTree policy (node:nodes) = Node node None [makeTree policy nodes]
 
-mergeAndTrim :: NodePolicy -> PolicyTree -> PolicyTree -> PolicyTree
-mergeAndTrim trump = trimTree trump .*. mergePolicyTrees trump
-
 concatTrees :: NodePolicy -> [PolicyTree] -> Maybe PolicyTree
-concatTrees _ [] = Nothing
-concatTrees _ [tree] = Just tree
-concatTrees trump (tree:trees) = mergePolicyTrees trump tree <$> concatTrees trump trees
+concatTrees _     []    = Nothing
+concatTrees trump trees = Just $ mergeBalanced (mergePolicyTrees trump) trees
 
 mergePolicyTrees :: NodePolicy -> PolicyTree -> PolicyTree -> PolicyTree
 mergePolicyTrees trump = mergeTrees mergePolicy

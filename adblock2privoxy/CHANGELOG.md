@@ -1,3 +1,12 @@
+3.0.0
+        * Speed and memory improvements in tree processing, file output 
+        * Parsing corrections for Adblock Plus, uBlock origin, AdGuard lists
+        * Privoxy PCRE syntax checks
+        * Use Privoxy FEATURE_PCRE_HOST_PATTERNS
+        * Filter out rules that affect TLDs
+        * Replace ageing dependencies with modern equivalents
+        * Add test suite
+	* Multiple bug fixes
 2.3.1
 	* Fix Network.hs compilation
 2.3.0

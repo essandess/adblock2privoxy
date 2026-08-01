@@ -16,7 +16,6 @@ recordSourceText
 where
 import Control.Applicative hiding ((<|>))
 import Text.ParserCombinators.Parsec hiding (Line, many, optional)
-import Data.List.Utils (split)
 import Data.List
 import Data.Char
 import Data.Containers.ListUtils
@@ -25,6 +24,7 @@ import Data.Monoid
 import Control.Monad
 import Text.Parsec.Permutation
 import System.FilePath
+import Utils (split)
 
 --------------------------------------------------------------------------
 ---------------------------- data model  ---------------------------------
@@ -79,7 +79,9 @@ recordSourceText (RecordSource position rawRecord)
 adblockFile :: Parser [Line]
 adblockFile = header *> sepEndBy line (oneOf eol)
     where
-        header = string "[Adblock Plus " <* version <* string "]"  <* lineEnd
+        -- Robust list headers across Adblock Plus, uBlock Origin
+        header = optional (try headerLine)
+        headerLine = string "[Adblock Plus " <* version <* string "]" <* lineEnd
         version = join <$> sepBy (many1 digit) (char '.')
 
 
@@ -95,7 +97,13 @@ line = do
 elementHide :: Parser Record
 elementHide = ElementHide <$> domains ',' <*> excludeMatch <*> pattern
     where
-        excludeMatch = char '#' *> ((Block <$ string "#") <|> (Unblock <$ string "@#"))
+        -- Adblock Plus / uBlock Origin / AdGuard cosmetic-filter markers
+        excludeMatch = do
+            _ <- char '#'
+            isException <- option False (True <$ char '@')
+            _ <- many (oneOf "$?%")
+            _ <- char '#'
+            return $ if isException then Unblock else Block
         pattern = manyTill anyChar (lookAhead lineEnd)
 
 match :: Parser Record
@@ -103,13 +111,16 @@ match = RequestBlock <$> excludeMatch <*> pattern <*> options
     where
         excludeMatch = option Block $ Unblock <$ count 2 (char '@')
         patternEnd = try (void (char '$') <* requestOptions <* lineEnd) <|> try (void lineEnd)
-        pattern = manyTill (noneOf "#") (lookAhead patternEnd)
+        -- patternEnd looks for a '$' or EOL
+        pattern = manyTill anyChar (lookAhead patternEnd)
         options = option '$' (char '$') *> requestOptions
 
 comment :: Parser Record
-comment = Comment <$> (separatorLine <|> commentText)
+comment = Comment <$> (separatorLine <|> commentText <|> hashComment)
             where commentText = char '!' *> many notLineEnd
                   separatorLine = lookAhead lineEnd $> ""
+                  -- Hosts-file-style or informal lists use a single leading '#'
+                  hashComment = try (char '#' *> notFollowedBy (oneOf "#@$%?") *> many notLineEnd)
 
 unknown :: Parser Record
 unknown = Error "Record type detection failed" <$ skipMany notLineEnd
@@ -131,7 +142,9 @@ requestOptions = runPermParser $ RequestOptions
         notRequestTypeOption = char '~' *> requestTypeOption
         requestOptionNorm = manyPerm.try.requestOption
         separator = try (lineSpaces *> char ',' <* lineSpaces)
-        unknownOption = manyPerm $ try optionName
+        unknownOption = manyPerm $ try unknownOptionItem
+        -- Discard unknown options used by some filter-list extensions
+        unknownOptionItem = optionName <* optional (char '=' *> many (noneOf (',':eol)))
 
 requestOption :: String -> Parser All
 requestOption name = All <$> option True (char '~' $> False) <* checkOptionName name
@@ -165,7 +178,8 @@ domain :: Parser Domain
 domain = join . intersperse "." <$> parts
             where
             parts = sepBy1 domainPart (char '.')
-            domainPart = many1 (alphaNum <|> char '-')
+            -- '*' is a valid wildcard label in Adblock Plus / uBlock Origin
+            domainPart = many1 (alphaNum <|> char '-' <|> char '*')
 
 domains :: Char -> Parser (Restrictions Domain)
 domains sep = fixRestrictions <$> runPermParser restrictions
