@@ -1,8 +1,12 @@
 {-# LANGUAGE StrictData #-}
+{-# LANGUAGE TypeApplications #-}
 
 module PatternConverter (
 makePattern,
-parseUrl
+parseUrl,
+hasUnsupportedPCRE,
+isOverbroadPattern,
+maxPatternLength
 ) where
 import InputParser
 import Control.Applicative hiding (many)
@@ -15,27 +19,46 @@ import Data.Char (isAlphaNum)
 import Data.Maybe
 import ParsecExt
 import Utils
+import Control.Exception (evaluate, handle)
+import System.IO.Unsafe (unsafePerformIO)
+import qualified Data.Text as T
+import Text.Regex.Pcre2 (SomePcre2Exception, match)
 
 
 data SideBind = Hard | Soft | None deriving (Show, Eq)
 
--- Check if a pattern contains PCRE features unsupported by Privoxy
+-- Lookaround markers PCRE2 accepts fine on their own.
+lookaroundMarkers :: [String]
+lookaroundMarkers = ["(?=", "(?!", "(?<=", "(?<!"]
+
+-- Count non-overlapping occurrences of a substring.
+countOccurrences :: String -> String -> Int
+countOccurrences needle haystack = length (filter (needle `isPrefixOf`) (tails haystack))
+
+-- Two or more chained lookarounds is the shape that can explode Privoxy's backtracking; one alone is fine.
+hasMultipleLookarounds :: String -> Bool
+hasMultipleLookarounds pattern = sum [countOccurrences m pattern | m <- lookaroundMarkers] >= 2
+
+-- True if PCRE2 rejects the pattern outright, or it has the multi-lookaround shape.
 hasUnsupportedPCRE :: String -> Bool
-hasUnsupportedPCRE pattern =
-    any (`isInfixOf` pattern)
-        [ "(?="   -- positive lookahead
-        , "(?!"   -- negative lookahead
-        , "(?<="  -- positive lookbehind
-        , "(?<!"  -- negative lookbehind
-        , "(?()"  -- conditional
-        , "(?P<"  -- named capture (Python style)
-        , "(?'"   -- named capture (Perl style)
-        , "(*"    -- backtracking control verbs (*PRUNE), (*SKIP), etc.
-        ]
+hasUnsupportedPCRE pattern = hasMultipleLookarounds pattern || unsafePerformIO
+    (handle @SomePcre2Exception (\_ -> return True) $ do
+        _ <- evaluate (match (T.pack pattern) T.empty :: Maybe T.Text)
+        return False)
+{-# NOINLINE hasUnsupportedPCRE #-}
 
 -- Maximum reasonable pattern length for Privoxy
 maxPatternLength :: Int
 maxPatternLength = 8000
+
+-- efficient non-backtracking wildcard match for glob
+{- http://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html -}
+globWildcard :: String
+globWildcard = "(*PRUNE).*?"
+
+-- A host-unrestricted pattern whose query is just the wildcard expansion matches every URL.
+isOverbroadPattern :: String -> String -> Bool
+isOverbroadPattern host' query' = null host' && query' `elem` [globWildcard, globWildcard ++ "$"]
 
 data UrlPattern = UrlPattern {
                    _bindStart :: SideBind,
@@ -52,6 +75,9 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
             -- Filter out patterns with unsupported PCRE
             | hasUnsupportedPCRE query' =
                 "# FILTERED: Pattern contains PCRE features unsupported by Privoxy (lookahead/lookbehind/etc.)"
+            -- Filter out rules that match every path on every host
+            | isOverbroadPattern host' query' =
+                "# FILTERED: Pattern is over-broad (matches every path)"
             -- Filter out excessively long patterns
             | length fullPattern > maxPatternLength =
                 "# FILTERED: Pattern exceeds maximum length (" ++ show maxPatternLength ++ " chars)"
@@ -103,21 +129,20 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                                 replaceQuery c cs openStart = replaceFirst c openStart
                                                               ++ concatMap renderChunk (tokenizeBracketClasses cs)
                                                               ++ queryEnd
-                                {- http://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html -}
-                                replaceFirst '*' _ = "(*PRUNE).*?"
+                                replaceFirst '*' _ = globWildcard
                                 replaceFirst c openStart
                                     | c == '/' || c == '^' = if openStart
-                                                             then "(?:(*PRUNE).*?" ++ replaceWildcard c ++ ")?"
+                                                             then "(?:" ++ globWildcard ++ replaceWildcard c ++ ")?"
                                                              else ""
                                     | otherwise            = if openStart
-                                                             then "(*PRUNE).*?" ++ replaceWildcard c
+                                                             then globWildcard ++ replaceWildcard c
                                                              else replaceWildcard c
 
                                 queryEnd = if bindEnd == None then "" else "$"
 
                                 replaceWildcard c
                                     | c == '^'         = "[^\\w%.-]"
-                                    | c == '*'         = "(*PRUNE).*?"
+                                    | c == '*'         = globWildcard
                                     | c `elem` special = '\\' : [c]
                                     | otherwise        = [c]
                                     where special = "?$.+[{}()\\|" -- also ^ and * are special
@@ -164,8 +189,7 @@ pcreHostPattern s = anchorStart ++ concatMap esc s ++ anchorEnd
     where
         anchorStart = if any (`isPrefixOf` s) ["*", "."] then "" else "^"
         anchorEnd   = if any (`isSuffixOf` s) ["*", "."] then "" else "$"
-        {- http://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html -}
-        esc '*' = "(*PRUNE).*?"
+        esc '*' = globWildcard
         esc '?' = "."
         esc '.' = "\\."
         esc c   = [c]

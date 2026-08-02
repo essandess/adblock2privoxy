@@ -14,6 +14,7 @@ import Utils
 import Control.Monad.State
 import qualified Templates
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 import Data.Maybe
 import System.IO
 import System.FilePath
@@ -54,8 +55,16 @@ urlBlock path info = writeBlockData . urlBlockData
             hSetBuffering outFile (BlockBuffering Nothing)
             hPutStrLn outFile header
             mapM_ (hPutStrLn outFile) $ ('#' :) <$> info
-            writeItemsSeparated outFile content
+            writeItemsSeparated outFile (dedupeByShow content)
             hClose outFile
+    -- Drop items whose rendered text is a repeat of one already kept.
+    dedupeByShow :: Show a => [a] -> [a]
+    dedupeByShow = go Set.empty
+        where
+        go _ [] = []
+        go seen (x:xs)
+            | show x `Set.member` seen = go seen xs
+            | otherwise                = x : go (Set.insert (show x) seen) xs
     -- Stream each item's Show output straight to the handle
     writeItemsSeparated :: Show a => Handle -> [a] -> IO ()
     writeItemsSeparated _   []     = return ()

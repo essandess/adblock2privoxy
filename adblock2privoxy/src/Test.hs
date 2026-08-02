@@ -8,7 +8,7 @@ import Text.ParserCombinators.Parsec (parse)
 import InputParser (adblockFile)
 import InputParser (Line(..), Record(..), Policy(..), Restrictions(..))
 import ParserExtTests (testParsecExt, testParseMorse)
-import PatternConverter (parseUrl,hasUnsupportedPCRE, maxPatternLength, makePattern)
+import PatternConverter (parseUrl, hasUnsupportedPCRE, isOverbroadPattern, maxPatternLength, makePattern)
 import PolicyTree (restrictionsTree, isValidDomain, NodePolicy(..))
 import Utils (replace, split, startswith)
 
@@ -92,22 +92,26 @@ cases =
                     (makeInfo "http://example.com")
        in True `seq` True)
   -- PCRE filtering tests
-  , check "hasUnsupportedPCRE detects positive lookahead (?=...)"
-      (hasUnsupportedPCRE "foo(?=bar)baz")
-  , check "hasUnsupportedPCRE detects negative lookahead (?!...)"
-      (hasUnsupportedPCRE "foo(?!bar)baz")
-  , check "hasUnsupportedPCRE detects positive lookbehind (?<=...)"
-      (hasUnsupportedPCRE "foo(?<=bar)baz")
-  , check "hasUnsupportedPCRE detects negative lookbehind (?<!...)"
-      (hasUnsupportedPCRE "foo(?<!bar)baz")
+  , check "hasUnsupportedPCRE accepts a single positive lookahead (?=...)"
+      (not (hasUnsupportedPCRE "foo(?=bar)baz"))
+  , check "hasUnsupportedPCRE accepts a single negative lookahead (?!...)"
+      (not (hasUnsupportedPCRE "foo(?!bar)baz"))
+  , check "hasUnsupportedPCRE accepts a single positive lookbehind (?<=...)"
+      (not (hasUnsupportedPCRE "foo(?<=bar)baz"))
+  , check "hasUnsupportedPCRE accepts a single negative lookbehind (?<!...)"
+      (not (hasUnsupportedPCRE "foo(?<!bar)baz"))
+  , check "hasUnsupportedPCRE detects two chained lookaheads (the catastrophic-backtracking shape)"
+      (hasUnsupportedPCRE "foo(?=[a-z]{0,9}1)(?=[a-z]{0,9}2)bar")
+  , check "hasUnsupportedPCRE detects a lookahead plus a lookbehind chained together"
+      (hasUnsupportedPCRE "foo(?=bar)(?<=baz)qux")
   , check "hasUnsupportedPCRE detects conditional (?(...))"
       (hasUnsupportedPCRE "foo(?(1)bar)baz")
-  , check "hasUnsupportedPCRE detects named capture (?P<name>...)"
-      (hasUnsupportedPCRE "foo(?P<test>bar)baz")
-  , check "hasUnsupportedPCRE detects backtracking control (*PRUNE)"
-      (hasUnsupportedPCRE "foo(*PRUNE)bar")
-  , check "hasUnsupportedPCRE detects backtracking control (*SKIP)"
-      (hasUnsupportedPCRE "foo(*SKIP)bar")
+  , check "hasUnsupportedPCRE accepts named capture (?P<name>...)"
+      (not (hasUnsupportedPCRE "foo(?P<test>bar)baz"))
+  , check "hasUnsupportedPCRE accepts backtracking control (*PRUNE)"
+      (not (hasUnsupportedPCRE "foo(*PRUNE)bar"))
+  , check "hasUnsupportedPCRE accepts backtracking control (*SKIP)"
+      (not (hasUnsupportedPCRE "foo(*SKIP)bar"))
   , check "hasUnsupportedPCRE accepts normal PCRE patterns"
       (not (hasUnsupportedPCRE "foo[a-z]+bar.*baz"))
   , check "hasUnsupportedPCRE accepts character classes"
@@ -126,21 +130,27 @@ cases =
       (not (hasUnsupportedPCRE "(?i)foo"))
   , check "hasUnsupportedPCRE accepts case-sensitive modifier"
       (not (hasUnsupportedPCRE "(?-i)foo"))
-  , check "parseUrl filters pattern with positive lookahead"
+  , check "hasUnsupportedPCRE rejects a malformed pattern (unmatched bracket)"
+      (hasUnsupportedPCRE "foo[bar")
+  , check "parseUrl accepts pattern with a single positive lookahead"
       (case parseUrl "/(?=test)/" of
-          Right patterns -> all (\p -> "# FILTERED:" `isInfixOf` makePattern False p) patterns
+          Right patterns -> not (null patterns) &&
+                           all (\p -> not ("# FILTERED:" `isInfixOf` makePattern False p)) patterns
           Left _         -> False)
-  , check "parseUrl filters pattern with negative lookahead"
+  , check "parseUrl accepts pattern with a single negative lookahead"
       (case parseUrl "/(?!test)/" of
-          Right patterns -> all (\p -> "# FILTERED:" `isInfixOf` makePattern False p) patterns
+          Right patterns -> not (null patterns) &&
+                           all (\p -> not ("# FILTERED:" `isInfixOf` makePattern False p)) patterns
           Left _         -> False)
-  , check "parseUrl filters pattern with positive lookbehind"
+  , check "parseUrl accepts pattern with a single positive lookbehind"
       (case parseUrl "/(?<=test)/" of
-          Right patterns -> all (\p -> "# FILTERED:" `isInfixOf` makePattern False p) patterns
+          Right patterns -> not (null patterns) &&
+                           all (\p -> not ("# FILTERED:" `isInfixOf` makePattern False p)) patterns
           Left _         -> False)
-  , check "parseUrl filters pattern with negative lookbehind"
+  , check "parseUrl accepts pattern with a single negative lookbehind"
       (case parseUrl "/(?<!test)/" of
-          Right patterns -> all (\p -> "# FILTERED:" `isInfixOf` makePattern False p) patterns
+          Right patterns -> not (null patterns) &&
+                           all (\p -> not ("# FILTERED:" `isInfixOf` makePattern False p)) patterns
           Left _         -> False)
   , check "parseUrl filters the problematic badware.txt pattern (line 625)"
       (case parseUrl "/^https:\\/\\/(?:www\\d\\.)?[-a-z]{6,}\\.(?:club|com)\\/" ++
@@ -148,6 +158,15 @@ cases =
                      "\\?(?:pub|s)id=[-_0-9a-z{}]{1,32}(?:&qs\\d=\\S+)?&cid=[-_0-9a-zA-Z]{10,36}\$/" of
           Right patterns -> all (\p -> "# FILTERED:" `isInfixOf` makePattern False p) patterns
           Left _         -> False)
+  -- Over-broad (host-unrestricted, match-everything) pattern filtering tests
+  , check "isOverbroadPattern rejects an empty host with a bare wildcard query"
+      (isOverbroadPattern "" "(*PRUNE).*?")
+  , check "isOverbroadPattern rejects an empty host with a bare wildcard query, end-anchored"
+      (isOverbroadPattern "" "(*PRUNE).*?$")
+  , check "isOverbroadPattern allows a wildcard query once it's followed by a literal"
+      (not (isOverbroadPattern "" "(*PRUNE).*?ads"))
+  , check "isOverbroadPattern allows a bare wildcard query when the host is restricted"
+      (not (isOverbroadPattern "example.com" "(*PRUNE).*?"))
   , check "parseUrl accepts simple domain pattern"
       (case parseUrl "||example.com^" of
           Right patterns -> not (null patterns) && 
