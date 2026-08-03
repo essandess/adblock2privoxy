@@ -1,7 +1,7 @@
 module Main (main) where
 
 import Control.Monad (forM_)
-import Data.List (isInfixOf)
+import Data.List (isInfixOf, isPrefixOf)
 import System.Exit (exitFailure, exitSuccess)
 import Text.ParserCombinators.Parsec (parse)
 
@@ -262,6 +262,16 @@ cases =
        (either (const False) null (parseUrl "||:8080^"))
    , check "parseUrl accepts wildcard port"
        (either (const False) (not . null) (parseUrl "||example.com:*^"))
+   , check "host with a fixed port doesn't get a spurious wildcard before the path (regression)"
+       (case parseUrl "||indylatinawrds.com:8443/impact^" of
+           Right patterns -> not (null patterns) &&
+                            all (\p -> not ("8443(*PRUNE)" `isInfixOf` makePattern False p)) patterns
+           Left _         -> False)
+   , check "unanchored host:port rule is recognized as a host, not folded into the path (regression)"
+       (case parseUrl ".sendpul.se:*/image/ui/" of
+           Right patterns -> not (null patterns) &&
+                            any (\p -> "PCRE-HOST-PATTERN:" `isPrefixOf` makePattern False p) patterns
+           Left _         -> False)
   ]
 
 main :: IO ()

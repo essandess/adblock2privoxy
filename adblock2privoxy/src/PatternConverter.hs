@@ -15,7 +15,7 @@ import Text.ParserCombinators.Parsec hiding (Line, (<|>))
 import Control.Monad
 import Control.Monad.State
 import Data.List
-import Data.Char (isAlphaNum)
+import Data.Char (isAlphaNum, isDigit)
 import Data.Maybe
 import ParsecExt
 import Utils
@@ -90,11 +90,21 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
         -- Privoxy host pattern with FEATURE_PCRE_HOST_PATTERNS
         host' = case host of
                     "" -> ""
-                    _  -> let hostGlob = changeFirst.changeLast $ host
+                    _  -> let (domainPart, portPart) = splitHostPort host
+                              -- A port is a fixed, non-continuable token: don't glue the
+                              -- subdomain-continuation glob onto it, or it lands between
+                              -- the port and the path instead of terminating the host.
+                              domainGlob = if null portPart then changeLast domainPart else domainPart
+                              hostGlob = changeFirst domainGlob ++ portPart
                           in if hostNeedsPCRE hostGlob
                              then "PCRE-HOST-PATTERN:" ++ pcreHostPattern hostGlob
                              else hostGlob
                     where
+                    -- A parsed host has at most one ':', marking an explicit port.
+                    splitHostPort s = case break (== ':') s of
+                        (domain, port@(':':_)) -> (domain, port)
+                        _                      -> (s, "")
+
                     changeLast []                                   = []
                     changeLast ['.', '*']
                         | query' == ""                              = "."
@@ -228,9 +238,41 @@ parseUrl =
         protocolChar :: Parser Char
         protocolChar = oneOf (delete '/' $ nub $ join protocols)
 
-        postfilter :: UrlPattern -> [UrlPattern]
-        postfilter url@(UrlPattern bs proto host query be _) = regular ++ regex -- ++ www
+        -- If host is empty but query starts with "[.]domain[:port]/", the domain[:port]
+        -- was mis-captured as query text; split it back out into host.
+        repairUnparsedHost :: String -> String -> (String, String)
+        repairUnparsedHost "" query
+            | Just (hostPrefix, rest) <- unparsedHostPrefix query = (hostPrefix, rest)
+        repairUnparsedHost host query = (host, query)
+
+        unparsedHostPrefix :: String -> Maybe (String, String)
+        unparsedHostPrefix query = case break (== '/') afterDot of
+            (candidate, rest@('/':_)) | isDomainWithPort candidate -> Just (leadingDot ++ candidate, rest)
+            _                                                      -> Nothing
             where
+            (leadingDot, afterDot) = case query of
+                ('.':rest') -> (".", rest')
+                _           -> ("", query)
+            -- Only trust this when a port marker is present; an ordinary dotted path
+            -- segment (e.g. "assets.min.js/x") is not enough of a signal on its own.
+            isDomainWithPort candidate = case break (== ':') candidate of
+                (domainPart, ':':portDigits) ->
+                    not (null portDigits)
+                    && all (\c -> isDigit c || c == '*') portDigits
+                    && all (\c -> isAlphaNum c || c == '-' || c == '.') domainPart
+                    && length (filter (not . null) (split "." domainPart)) >= 2
+                _ -> False
+
+        postfilter :: UrlPattern -> [UrlPattern]
+        postfilter url@(UrlPattern bs proto rawHost rawQuery be _) = regular ++ regex -- ++ www
+            where
+                -- An unanchored rule like ".domain.tld:port/path" has no "||"/"|" to force
+                -- host parsing, so it's ambiguous whether the leading text is a host or
+                -- plain path text; but a "domain[:port]/" prefix with an explicit port is
+                -- an unambiguous signal that it's a host, so recover it here if it was
+                -- otherwise left folded into the query.
+                (host, query) = repairUnparsedHost rawHost rawQuery
+
                 regex = if     proto == ""
                             && host == ""
                             && "/" `isPrefixOf` query
@@ -252,7 +294,7 @@ parseUrl =
                              then
                                 let
                                     query' = if "*" `isSuffixOf` host && query /= "" then '*' : query else query
-                                in [url {_query = query'}]
+                                in [url {_host = host, _query = query'}]
                              else []
 
         -- TODO: process port as an url part
