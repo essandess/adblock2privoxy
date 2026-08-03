@@ -18,7 +18,9 @@ import qualified Data.Set as Set
 import Data.Maybe
 import System.IO
 import System.FilePath
-import PatternConverter
+-- UrlPattern's _regex field collides with Filter's _regex field from OptionsConverter
+import PatternConverter hiding (_regex)
+
 
 data TaggerType = Client | Server
 data TaggerForwarder = Forward (Maybe Filter) String | CancelTagger String

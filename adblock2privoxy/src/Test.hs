@@ -8,7 +8,7 @@ import Text.ParserCombinators.Parsec (parse)
 import InputParser (adblockFile)
 import InputParser (Line(..), Record(..), Policy(..), Restrictions(..))
 import ParserExtTests (testParsecExt, testParseMorse)
-import PatternConverter (parseUrl, hasUnsupportedPCRE, isOverbroadPattern, maxPatternLength, makePattern)
+import PatternConverter (parseUrl, globWildcard, hasUnsupportedPCRE, isOverbroadPattern, maxPatternLength, makePattern)
 import PolicyTree (restrictionsTree, isValidDomain, NodePolicy(..))
 import Utils (replace, split, startswith)
 
@@ -121,7 +121,7 @@ cases =
   , check "hasUnsupportedPCRE accepts alternation"
       (not (hasUnsupportedPCRE "foo|bar|baz"))
   , check "hasUnsupportedPCRE accepts anchors"
-      (not (hasUnsupportedPCRE "^foo.*bar\$"))
+      (not (hasUnsupportedPCRE "^foo.*bar\\$"))
   , check "hasUnsupportedPCRE accepts word boundaries"
       (not (hasUnsupportedPCRE "\\bfoo\\b"))
   , check "hasUnsupportedPCRE accepts non-capturing groups"
@@ -263,15 +263,23 @@ cases =
    , check "parseUrl accepts wildcard port"
        (either (const False) (not . null) (parseUrl "||example.com:*^"))
    , check "host with a fixed port doesn't get a spurious wildcard before the path (regression)"
-       (case parseUrl "||indylatinawrds.com:8443/impact^" of
+       (case parseUrl "||example.com:8443/impact^" of
            Right patterns -> not (null patterns) &&
                             all (\p -> not ("8443(*PRUNE)" `isInfixOf` makePattern False p)) patterns
            Left _         -> False)
    , check "unanchored host:port rule is recognized as a host, not folded into the path (regression)"
-       (case parseUrl ".sendpul.se:*/image/ui/" of
+       (case parseUrl ".example.com:*/image/ui/" of
            Right patterns -> not (null patterns) &&
                             any (\p -> "PCRE-HOST-PATTERN:" `isPrefixOf` makePattern False p) patterns
            Left _         -> False)
+  , check "unanchored path with embedded domain doesn't get a spurious leading wildcard (regression)"
+      (case parseUrl "/email.example.com/o/*" of
+          Right patterns -> any (\p -> makePattern False p == ".*email.unsplash.com/o/" ++ globWildcard) patterns
+          Left _         -> False)
+  , check "percent-encoded path separators are decoded before host/path splitting (regression)"
+      (case parseUrl ".example.com%2Fq%2F" of
+          Right patterns -> any (\p -> makePattern False p == ".example.com/q/") patterns
+          Left _         -> False)
   ]
 
 main :: IO ()
