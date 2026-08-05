@@ -6,7 +6,9 @@ makePattern,
 parseUrl,
 -- expose utility functions for maintenance and testing
 UrlPattern(..),
+RuleShape(..),
 SideBind(..),
+classifyLine,
 globWildcard,
 maxPatternLength,
 bindStart,
@@ -49,6 +51,11 @@ data UrlPattern = UrlPattern {
                    _bindEnd :: SideBind,
                    _regex :: Bool }
               deriving (Show, Eq)
+
+-- The three mutually-exclusive rule shapes AdGuard's syntax describes,
+-- decided once up front rather than by elimination after a failed parse.
+data RuleShape = Cosmetic | BareRegex String String | Structured Pattern
+    deriving (Show, Eq)
 
 data SideBind = Hard | Soft | None deriving (Show, Eq)
 
@@ -313,10 +320,38 @@ splitClosingSlash ('/':rest) = go rest ""
         go (c:cs)      acc = go cs (c : acc)
 splitClosingSlash _ = Nothing
 
+-- Classifies a raw line before any bind/proto/host/query grammar runs.
+classifyLine :: Pattern -> RuleShape
+classifyLine pattern
+    -- "##"/"##+js(...)" etc. is a cosmetic/scriptlet rule, not a network rule
+    | "##" `isInfixOf` pattern = Cosmetic
+    -- /regex/ delimiters must be found on the RAW line, before any
+    -- modifier-stripping: a $ anchor inside the regex body (e.g.
+    -- "/^example\.com$/") is otherwise indistinguishable from a real
+    -- $modifiers separator and gets sliced off along with the closing
+    -- slash, corrupting the body. Only what follows the true closing
+    -- slash is modifiers, so splitModifiers is applied there, not first.
+    | not ("|" `isPrefixOf` pattern)
+    , Just (body, rest) <- splitClosingSlash pattern
+    , not (null body)
+    , rest == "" || "$" `isPrefixOf` rest = BareRegex body rest
+    -- structured rules have no slash-delimited body to protect, so
+    -- $modifiers can be stripped directly here
+    | otherwise = Structured (fst (splitModifiers pattern))
+
+-- Finds the unescaped '$' starting a $modifiers suffix
+splitModifiers :: String -> (String, String)
+splitModifiers = go ""
+    where
+        go acc []          = (reverse acc, "")
+        go acc ('\\':c:cs) = go (c : '\\' : acc) cs
+        go acc ('$':cs)    = (reverse acc, '$' : cs)
+        go acc (c:cs)      = go (c : acc) cs
+
 -- Turns one raw parsed (bindStart, proto, host, query, bindEnd) tuple
 -- into zero, one, or two UrlPattern's
 postfilter :: UrlPattern -> [UrlPattern]
-postfilter url@(UrlPattern bs proto rawHost rawQuery be _) = regular ++ regex -- ++ www
+postfilter url@(UrlPattern bs proto rawHost rawQuery be _) = regular
     where
         -- Workaround: host text can get swallowed into query when nothing forces
         -- host parsing (see host/urlParts); heuristically recovered here when a
@@ -326,17 +361,8 @@ postfilter url@(UrlPattern bs proto rawHost rawQuery be _) = regular ++ regex --
         -- A lone trailing '^' is just the end-of-host separator
         query = if repairedQuery == "^" then "" else repairedQuery
 
-        -- "/regex/" or "/regex/$modifiers" per AdGuard hosts-blocklist syntax is
-        -- only meaningful when the WHOLE pattern is host/proto/bind-less. Without
-        -- this gate, an ordinary two-segment leftover path from a host-bearing case
-        -- (e.g. "/q/" from ".example.com/q/") has the same open/close-slash shape
-        -- and gets misread as a regex, producing a spurious hostless rule.
-        regex = case (bs, proto, host) of
-                    (None, "", "") -> case splitClosingSlash query of
-                        Just (body, mods) | not (null body) && (null mods || "$" `isPrefixOf` mods) ->
-                            [UrlPattern bs "" "" body be True]
-                        _ -> []
-                    _ -> []
+        -- bare /regex/ lines are classified and built by classifyLine before
+        -- parseUrl ever runs urlParts, so that shape can't reach this function.
         regular = let
                      leftBound = bs /= None || proto /= ""
                      rightBound = be /= None || query /= ""
@@ -347,8 +373,6 @@ postfilter url@(UrlPattern bs proto rawHost rawQuery be _) = regular ++ regex --
                      -- trailing "." (any-tld) or an explicit "*" mean "prefix", not a bare TLD; don't reject those
                      tldOnlyHost = host /= "" && length hostLabels < 2
                                    && '*' `notElem` host && not ("." `isSuffixOf` host)
-                     -- A bare /regex/ (no bind, no proto, no host) is regex-only per spec: don't also emit it as a literal rule.
-                     bareRegex = not (null regex) && bs == None && proto == "" && host == ""
                      -- An unanchored ".domain.tld/path" (no "|"/proto forcing host
                      -- parsing) is the Adblock convention for "this domain and any
                      -- subdomain"; the leading '.' is the signal. When "cases" also
@@ -361,7 +385,7 @@ postfilter url@(UrlPattern bs proto rawHost rawQuery be _) = regular ++ regex --
                                && all (all (\c -> isAlphaNum c || c == '-')) labels
                         _ -> False
                      unanchoredDottedHost = host == "" && leadingDotHost
-                  in if not (orphanQuery || tldOnlyHost || bareRegex || unanchoredDottedHost)
+                  in if not (orphanQuery || tldOnlyHost || unanchoredDottedHost)
                      then
                         let
                             query' = if "*" `isSuffixOf` host && query /= "" then '*' : query else query
@@ -418,7 +442,9 @@ urlParts = square3 proto (manyCases host) (oneCase query)
                                         return $ if nextChar == '*' then chars ++ "*" else chars
         -- N.b. no domain for rules like /regex/, /path
         host = try (append <$> many hostChar <*> char '*') <|>
-               try ((++) <$> many1 hostChar <*> option "" (try portSuffix) <* lookAhead separator) <?> "host"
+               try ((++) <$> many1 hostChar <*> option "" (try portSuffix) <* lookAhead separator) <|>
+               -- bare ":port" with no domain label, e.g. ":8443/x"
+               try (portSuffix <* lookAhead separator) <?> "host"
 
         separator = (oneOf hostSeparators <|> queryEnd) <?> "separator"
         query = notFollowedBy (try $ string "//") *> manyTill anyChar (lookAhead (try queryEnd)) <?> "query"
@@ -433,13 +459,15 @@ urlParts = square3 proto (manyCases host) (oneCase query)
                                  in drop (length chars) <$> tailFound
 
 -- Parses one line into its component UrlPattern's
+-- Detects a domain[:port]/ prefix (optionally preceded by a single
+-- leading '.' or '/') at the start of a query string, and if found,
+-- splits it into the domain/port prefix and the remaining query
 parseUrl :: Pattern -> Either ParseError [UrlPattern]
-parseUrl pattern
-    -- "##"/"##+js(...)" etc. is a cosmetic/scriptlet rule, not a URL pattern; don't force it through this grammar
-    | "##" `isInfixOf` pattern = Right []
-    | otherwise = parse (nub . join <$> (fmap.fmap) postfilter raw) "url" (decodeUrlEscapes pattern) -- collapse identical cases
-    where
-        raw = makeUrls <$> bindStart <*> cases urlParts <*> bindEnd
+parseUrl pattern = case classifyLine pattern of
+    Cosmetic         -> Right []
+    BareRegex body _ -> Right [UrlPattern None "" "" body None True]
+    Structured body  -> parse (nub . join <$> (fmap.fmap) postfilter raw) "url" (decodeUrlEscapes body) -- collapse identical cases
+        where raw = makeUrls <$> bindStart <*> cases urlParts <*> bindEnd
 
 -- synonym for unEscapeString
 decodeUrlEscapes :: String -> String
