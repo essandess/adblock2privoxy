@@ -53,13 +53,13 @@ urlBlock path info = writeBlockData . urlBlockData
             hSetEncoding outFile utf8
             -- Explicit block buffering: with millions of items this avoids
             -- one syscall-worthy flush per line under whatever the default
-            -- buffering mode happens to be.
+            -- buffering mode happens to be
             hSetBuffering outFile (BlockBuffering Nothing)
             hPutStrLn outFile header
             mapM_ (hPutStrLn outFile) $ ('#' :) <$> info
             writeItemsSeparated outFile (dedupeByShow content)
             hClose outFile
-    -- Drop items whose rendered text is a repeat of one already kept.
+    -- Drop items whose rendered text is a repeat of one already kept
     dedupeByShow :: Show a => [a] -> [a]
     dedupeByShow = go Set.empty
         where

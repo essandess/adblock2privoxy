@@ -17,6 +17,7 @@ import InputParser hiding (Policy(..))
 import Data.List (filter)
 import Utils
 
+
 data NodePolicy = None | Block | Unblock deriving (Eq, Show)
 data DomainTree a = Node { _name :: String, _value :: a, _children :: [DomainTree a] }
 type PolicyTree = DomainTree NodePolicy

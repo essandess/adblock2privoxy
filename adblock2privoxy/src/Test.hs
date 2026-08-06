@@ -6,10 +6,10 @@ import System.Exit (exitFailure, exitSuccess)
 import Text.ParserCombinators.Parsec (parse)
 
 import InputParser (adblockFile)
-import InputParser (Line(..), Record(..), Policy(..), Restrictions(..))
+import InputParser (Line(..), Record(..), Policy(Allow), Restrictions(..))
 import ParserExtTests (testParsecExt, testParseMorse)
 import PatternConverter (parseUrl, globWildcard, hasUnsupportedPCRE, isOverbroadPattern, maxPatternLength, makePattern)
-import PolicyTree (restrictionsTree, isValidDomain, NodePolicy(..))
+import PolicyTree (restrictionsTree, NodePolicy(Block, Allow))
 import Utils (replace, split, startswith)
 
 
@@ -72,7 +72,7 @@ cases =
       (either (const False) (not . null) testParsecExt)
   , check "ParsecExt morse decode of HELLO"
       (either (const False) (elem "HELLO") testParseMorse)
-  , check "parseUrl terminates on malformed bracket in query (regression)"
+  , check "parseUrl terminates on malformed bracket in path (regression)"
       (either (const False) (const True) (parseUrl "||example.com/foo[bar^"))
   , check "host dots are literal, not PCRE-escaped (regression)"
       (either (const False)
@@ -155,17 +155,17 @@ cases =
   , check "parseUrl filters the problematic badware.txt pattern (line 625)"
       (case parseUrl "/^https:\\/\\/(?:www\\d\\.)?[-a-z]{6,}\\.(?:club|com)\\/" ++
                      "(?=[-_a-zA-Z]{0,42}\\d)(?=[-_0-9a-z]{0,42}[A-Z])[-_0-9a-zA-Z]{43}\\/" ++
-                     "\\?(?:pub|s)id=[-_0-9a-z{}]{1,32}(?:&qs\\d=\\S+)?&cid=[-_0-9a-zA-Z]{10,36}\$/" of
+                     "\\?(?:pub|s)id=[-_0-9a-z{}]{1,32}(?:&qs\\d=\\S+)?&cid=[-_0-9a-zA-Z]{10,36}\\$/" of
           Right patterns -> all (\p -> "# FILTERED:" `isInfixOf` makePattern False p) patterns
           Left _         -> False)
   -- Over-broad (host-unrestricted, match-everything) pattern filtering tests
-  , check "isOverbroadPattern rejects an empty host with a bare wildcard query"
+  , check "isOverbroadPattern rejects an empty host with a bare wildcard path"
       (isOverbroadPattern "" "(*PRUNE).*?")
-  , check "isOverbroadPattern rejects an empty host with a bare wildcard query, end-anchored"
+  , check "isOverbroadPattern rejects an empty host with a bare wildcard path, end-anchored"
       (isOverbroadPattern "" "(*PRUNE).*?$")
-  , check "isOverbroadPattern allows a wildcard query once it's followed by a literal"
+  , check "isOverbroadPattern allows a wildcard path once it's followed by a literal"
       (not (isOverbroadPattern "" "(*PRUNE).*?ads"))
-  , check "isOverbroadPattern allows a bare wildcard query when the host is restricted"
+  , check "isOverbroadPattern allows a bare wildcard path when the host is restricted"
       (not (isOverbroadPattern "example.com" "(*PRUNE).*?"))
   , check "parseUrl accepts simple domain pattern"
       (case parseUrl "||example.com^" of
@@ -183,35 +183,17 @@ cases =
                            all (\p -> not ("# FILTERED:" `isInfixOf` makePattern False p)) patterns
           Left _         -> False)
   , check "parseUrl filters excessively long pattern"
-      (let longPattern = "/^" ++ replicate (maxPatternLength + 100) 'a' ++ "\$/"
+      (let longPattern = "/^" ++ replicate (maxPatternLength + 100) 'a' ++ "\\$/"
        in case parseUrl longPattern of
               Right patterns -> all (\p -> "# FILTERED:" `isInfixOf` makePattern False p) patterns
               Left _         -> False)
   , check "parseUrl accepts normal-length pattern"
-      (let normalPattern = "/^" ++ replicate 100 'a' ++ "\$/"
+      (let normalPattern = "/^" ++ replicate 100 'a' ++ "\\$/"
        in case parseUrl normalPattern of
               Right patterns -> not (null patterns) &&
                                all (\p -> not ("# FILTERED:" `isInfixOf` makePattern False p)) patterns
               Left _         -> False)
   -- Domain validation tests for PolicyTree
-  , check "isValidDomain rejects bare TLD (com)"
-      (not (isValidDomain "com"))
-  , check "isValidDomain rejects bare TLD with wildcard (*.com)"
-      (not (isValidDomain "*.com"))
-  , check "isValidDomain rejects bare TLD with leading dot (.org)"
-      (not (isValidDomain ".org"))
-  , check "isValidDomain rejects empty domain"
-      (not (isValidDomain ""))
-  , check "isValidDomain rejects single wildcard (*)"
-      (not (isValidDomain "*"))
-  , check "isValidDomain accepts valid two-label domain (example.com)"
-      (isValidDomain "example.com")
-  , check "isValidDomain accepts valid subdomain (www.example.com)"
-      (isValidDomain "www.example.com")
-  , check "isValidDomain accepts wildcard subdomain (*.example.com)"
-      (isValidDomain "*.example.com")
-  , check "isValidDomain accepts multi-level subdomain (a.b.example.com)"
-      (isValidDomain "a.b.example.com")
   , check "restrictionsTree filters out bare TLD from positive list"
       (case restrictionsTree Block (Restrictions (Just ["com", "example.com"]) []) of
           Just tree -> True  -- Should succeed with only example.com

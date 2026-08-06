@@ -64,24 +64,24 @@ executable adblock2privoxy
                 GeneralizedNewtypeDeriving,
                 FlexibleContexts
   build-depends:
-                base >= 4 && < 9.9,
+                base >= 4.14 && < 4.23,
                 bytestring,
                 case-insensitive >= 1.2.1 && < 1.3,
-                containers >= 0.6.7 && < 0.7,
-                directory >= 1.3.8 && < 1.4,
+                containers >= 0.6.7 && < 0.9,
+                directory >= 1.3.8 && < 1.5,
                 extra,
-                filepath >= 1.4.200 && < 1.5,
-                http-conduit >= 2.3.8 && < 2.4,
-                mtl >= 2.3.1 && < 2.4,
-                network >= 3.1.4 && < 3.3,
-                network-uri >= 2.6.4 && < 2.7,
+                filepath >= 1.4.200 && < 1.6,
+                http-conduit >= 2.3.8 && < 2.5,
+                mtl >= 2.3.1 && < 2.5,
+                network >= 3.1.4 && < 3.4,
+                network-uri >= 2.6.4 && < 2.8,
                 old-locale >= 1.0.0 && < 1.1,
-                parsec >= 3.1.16 && < 3.2,
+                parsec >= 3.1.17 && < 3.2,
                 parsec-permutation >= 0.1.2 && < 0.2,
-                pcre2 >= 2.2 && < 2.4,
+                pcre2 >= 2.3 && < 2.4,
                 strict >= 0.5 && < 0.6,
-                text >= 2.0.2 && < 2.2,
-                time >= 1.12.2 && < 1.13
+                text >= 2.1 && < 2.3,
+                time >= 1.12.2 && < 1.16
   ghc-options:  -Wall
                 -O2
                 -rtsopts
@@ -114,16 +114,17 @@ test-suite adblock2privoxy-test
                 GeneralizedNewtypeDeriving,
                 FlexibleContexts
   build-depends:
-                base >= 4 && < 9.9,
+                base >= 4.14 && < 4.23,
                 bytestring,
-                containers >= 0.6.7 && < 0.7,
+                containers >= 0.6.7 && < 0.9,
                 extra,
-                filepath >= 1.4.200 && < 1.5,
-                mtl >= 2.3.1 && < 2.4,
-                parsec >= 3.1.16 && < 3.2,
+                filepath >= 1.4.200 && < 1.6,
+                mtl >= 2.3.1 && < 2.5,
+                network-uri >= 2.6.4 && < 2.8,
+                parsec >= 3.1.17 && < 3.2,
                 parsec-permutation >= 0.1.2 && < 0.2,
-                text >= 2.0.2 && < 2.2,
-                pcre2 >= 2.2 && < 2.4
+                pcre2 >= 2.3 && < 2.4,
+                text >= 2.1 && < 2.3
   ghc-options:  -Wall
                 -O2
                 -rtsopts

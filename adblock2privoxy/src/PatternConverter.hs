@@ -13,10 +13,12 @@ globWildcard,
 maxPatternLength,
 bindStart,
 bindEnd,
-queryEnd,
+patternEnd,
 unparsedHostPrefix,
 repairUnparsedHost,
 splitClosingSlash,
+hasUnsupportedPCRE,
+isOverbroadPattern,
 postfilter,
 urlParts,
 makeUrl,
@@ -47,31 +49,31 @@ data UrlPattern = UrlPattern {
                    _bindStart :: SideBind,
                    _proto :: String,
                    _host :: String,
-                   _query :: String,
+                   _path :: String,
                    _bindEnd :: SideBind,
                    _regex :: Bool }
               deriving (Show, Eq)
 
 -- The three mutually-exclusive rule shapes AdGuard's syntax describes,
--- decided once up front rather than by elimination after a failed parse.
+-- decided once up front rather than by elimination after a failed parse
 data RuleShape = Cosmetic | BareRegex String String | Structured Pattern
     deriving (Show, Eq)
 
 data SideBind = Hard | Soft | None deriving (Show, Eq)
 
--- Lookaround markers PCRE2 accepts fine on their own.
+-- Lookaround markers PCRE2 accepts fine on their own
 lookaroundMarkers :: [String]
 lookaroundMarkers = ["(?=", "(?!", "(?<=", "(?<!"]
 
--- Count non-overlapping occurrences of a substring.
+-- Count non-overlapping occurrences of a substring
 countOccurrences :: String -> String -> Int
 countOccurrences needle haystack = length (filter (needle `isPrefixOf`) (tails haystack))
 
--- Two or more chained lookarounds is the shape that can explode Privoxy's backtracking; one alone is fine.
+-- Two or more chained lookarounds is the shape that can explode Privoxy's backtracking; one alone is fine
 hasMultipleLookarounds :: String -> Bool
 hasMultipleLookarounds pattern = sum [countOccurrences m pattern | m <- lookaroundMarkers] >= 2
 
--- True if PCRE2 rejects the pattern outright, or it has the multi-lookaround shape.
+-- True if PCRE2 rejects the pattern outright, or it has the multi-lookaround shape
 hasUnsupportedPCRE :: String -> Bool
 hasUnsupportedPCRE pattern = hasMultipleLookarounds pattern || unsafePerformIO
     (handle @SomePcre2Exception (\_ -> return True) $ do
@@ -88,59 +90,63 @@ maxPatternLength = 8000
 globWildcard :: String
 globWildcard = "(*PRUNE).*?"
 
--- A host-unrestricted pattern whose query is just the wildcard expansion matches every URL.
+-- A host-unrestricted pattern whose path is just the wildcard expansion matches every URL
 isOverbroadPattern :: String -> String -> Bool
-isOverbroadPattern host' query' = null host' && query' `elem` [globWildcard, globWildcard ++ "$"]
+isOverbroadPattern host' path' = null host' && path' `elem` [globWildcard, globWildcard ++ "$"]
 
 makePattern :: Bool -> UrlPattern -> Pattern
-makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
-            | query' == "" = host'
+makePattern matchCase (UrlPattern bindStart proto host path bindEnd isRegex)
+            -- host and path both collapsed to nothing (e.g. *$doc): matches every URL, not a real rule
+            | host' == "" && path' == "" =
+                "# FILTERED: Pattern is over-broad (matches every path)"
+            | path' == "" = host'
             -- Filter out patterns with unsupported PCRE
-            | hasUnsupportedPCRE query' =
+            | hasUnsupportedPCRE path' =
                 "# FILTERED: Pattern contains PCRE features unsupported by Privoxy (lookahead/lookbehind/etc.)"
             -- Filter out rules that match every path on every host
-            | isOverbroadPattern host' query' =
+            | isOverbroadPattern host' path' =
                 "# FILTERED: Pattern is over-broad (matches every path)"
             -- Filter out excessively long patterns
             | length fullPattern > maxPatternLength =
                 "# FILTERED: Pattern exceeds maximum length (" ++ show maxPatternLength ++ " chars)"
-            | otherwise    = host' ++ separator' ++ query'
+            | otherwise    = host' ++ separator' ++ path'
     where
-        fullPattern = host' ++ separator' ++ query'
+        fullPattern = host' ++ separator' ++ path'
         separator'
             | matchCase = "/(?-i)"
             | otherwise = "/"
         -- Privoxy host pattern with FEATURE_PCRE_HOST_PATTERNS
-        host' = case host of
+        host' = case (decodeUrlEscapes host) of
                     "" -> ""
                     -- Drop unnecessary wildcard for Privoxy hosts
                     "*" -> ""
                     _  -> let (domainPart, portPart) = splitHostPort host
                               -- A port is a fixed, non-continuable token: don't glue the
                               -- subdomain-continuation glob onto it, or it lands between
-                              -- the port and the path instead of terminating the host.
+                              -- the port and the path instead of terminating the host
                               domainGlob = if null portPart then changeLast domainPart else domainPart
                               hostGlob = changeFirst domainGlob ++ portPart
                           in if hostNeedsPCRE hostGlob
                              then "PCRE-HOST-PATTERN:" ++ pcreHostPattern hostGlob
                              else hostGlob
                     where
-                    -- A parsed host has at most one ':', marking an explicit port.
+                    -- A parsed host has at most one :, marking an explicit port
                     splitHostPort s = case break (== ':') s of
                         (domain, port@(':':_)) -> (domain, port)
                         _                      -> (s, "")
 
                     changeLast []                                   = []
                     changeLast ['.', '*']
-                        | query' == ""                              = "."
+                        | path' == ""                               = "."
                         | otherwise                                 = ".*"
                     changeLast ['*', '.']
-                        | query' == ""                              = "*."
+                        | path' == ""                               = "*."
                         | otherwise                                 = "*.*"
                     changeLast [lst]
                         | lst == '|' || lst `elem` hostSeparators   =  []
-                        | lst == '*' && query' == ""                =  "*."
-                        | lst == '*' && query' /= ""                =  "*"
+                        | lst == '*' && path' == ""                 =  "*."
+                        | lst == '*' && path' /= ""                 =  "*"
+                        | lst == '-'                                =  "-*" -- trailing '-' can't be a real DNS label char; it's a prefix wildcard
                         | otherwise                                 =  lst : []
                     changeLast (c:cs) = c : changeLast cs
 
@@ -152,26 +158,26 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                         | bindStart == Soft                  = '.' : first : cs
                         | otherwise                          = '.' : '*' : first : cs
 
-        query' = case query of
+        path' = case path of
                     ""     -> ""
                     (start:other) ->
-                              if isRegex then query
-                              else case query of
-                                '*' : '/' : other' -> replaceQuery '/' other' True True
-                                '*' : '^' : other' -> replaceQuery '^' other' True True
+                              if isRegex then path
+                              else case path of
+                                '*' : '/' : other' -> replacePath '/' other' True True
+                                '*' : '^' : other' -> replacePath '^' other' True True
                                 -- a literal leading '/' is its own anchor
                                 -- "./" is just as anchoring as a bare leading '/'
-                                _                  -> replaceQuery start other (bindStart == None && host == "" && not (isPathAnchored query)) False
+                                _                  -> replacePath start other (bindStart == None && host == "" && not (isPathAnchored path)) False
                                where
                                 isPathAnchored q = "/" `isPrefixOf` q || "./" `isPrefixOf` q
                               where
-                                replaceQuery c cs openStart collapsed = replaceFirst c openStart collapsed
+                                replacePath c cs openStart collapsed = replaceFirst c openStart collapsed
                                                               ++ concatMap renderChunk (tokenizeBracketClasses cs)
-                                                              ++ queryEnd
+                                                              ++ pathEndAnchor
                                 replaceFirst '*' _ _ = globWildcard
-                                -- collapsed=True only for an explicit "*/"/"*^" prefix, where the
+                                -- collapsed=True only for an explicit  */ or *^ prefix, where the
                                 -- separator can be folded into the preceding wildcard as optional;
-                                -- a bare leading '/' or '^' with no wildcard must stay a required literal.
+                                -- a bare leading / or ^ with no wildcard must stay a required literal
                                 replaceFirst c openStart collapsed
                                     | collapsed && (c == '/' || c == '^') = if openStart
                                                              then "(?:" ++ globWildcard ++ replaceWildcard c ++ ")?"
@@ -183,7 +189,7 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                                                              then globWildcard ++ replaceWildcard c
                                                              else replaceWildcard c
 
-                                queryEnd = if bindEnd == None then "" else "$"
+                                pathEndAnchor = if bindEnd == None then "" else "$"
 
                                 replaceWildcard c
                                     | c == '^'         = "[^\\w%.-]"
@@ -193,7 +199,7 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                                     where special = "?$.+[{}()\\|" -- also ^ and * are special
                                         -- Note: lone ']' outside a bracket class is not special in PCRE
 
-                                -- Split a query string into alternating plain-text runs and bracket character classes
+                                -- Split a path string into alternating plain-text runs and bracket character classes
                                 tokenizeBracketClasses :: String -> [Either String String]
                                 tokenizeBracketClasses [] = []
                                 tokenizeBracketClasses s@(x:xs)
@@ -203,7 +209,7 @@ makePattern matchCase (UrlPattern bindStart proto host query bindEnd isRegex)
                                         let (plain, rest) = breakNextBracket s
                                         in Left plain : tokenizeBracketClasses rest
                                   where
-                                    -- Like 'break (== \'[\')', but always consumes at least the first character first.
+                                    -- Like 'break (== \'[\')', but always consumes at least the first character first
                                     breakNextBracket :: String -> (String, String)
                                     breakNextBracket [] = ([], [])
                                     breakNextBracket (c:cs) =
@@ -239,78 +245,78 @@ pcreHostPattern s = anchorStart ++ concatMap esc s ++ anchorEnd
         esc '.' = "\\."
         esc c   = [c]
 
--- Parses a leading "|" / "||" URL-anchor prefix, if present.
+-- Parses a leading | / || URL-anchor prefix, if present
 bindStart = (try (Soft <$ string "||") <|> try (Hard <$ string "|") <|> return None) <?> "query start"
 
--- Parses the end of a pattern: a trailing "|" right before end-of-input,
+-- Parses the end of a pattern: a trailing | right before end-of-input,
 -- or the '\0' sentinel used to mark end-of-line, without consuming it in
--- the '\0' case (so callers can still 'lookAhead' it).
-queryEnd = (char '|' <* eof) <|> ('\0' <$ eof) <|> char '\0' <?> "query end"
+-- the '\0' case (so callers can still lookAhead it)
+patternEnd = (char '|' <* eof) <|> ('\0' <$ eof) <|> char '\0' <?> "pattern end"
 
--- Parses a trailing "|" URL-anchor suffix, if present.
-bindEnd = (\c -> if c == '|' then Hard else None) <$> queryEnd
+-- Parses a trailing | URL-anchor suffix, if present
+bindEnd = (\c -> if c == '|' then Hard else None) <$> patternEnd
 
--- Parses an explicit ":port" suffix on a host, where the port may itself
--- contain '*' wildcards (e.g. ":80*").
+-- Parses an explicit :port suffix on a host, where the port may itself
+-- contain * wildcards (e.g. :80*)
 portSuffix = (:) <$> char ':' <*> many1 (digit <|> char '*')
 
--- Strips a single trailing '\0' end-of-line sentinel, if present.
+-- Strips a single trailing '\0' end-of-line sentinel, if present
 trimTrailingNul :: String -> String
 trimTrailingNul [] = []
 trimTrailingNul (c:cs)
     | null cs && c == '\0' = []
     | otherwise             = c : trimTrailingNul cs
 
--- Characters legal in an (unglobbed) host label.
+-- Characters legal in an (unglobbed) host label
 hostChar = alphaNum <|> oneOf ".-"
 
--- Recognized URL schemes, longest/most-specific match preferred by callers.
+-- Recognized URL schemes, longest/most-specific match preferred by callers
 protocols :: [String]
 protocols = ["https://", "http://"]
 
--- Separator between alternative continuations tracked while parsing 'proto'.
+-- Separator between alternative continuations tracked while parsing 'proto'
 protocolsSeparator :: String
 protocolsSeparator = ";"
 
 -- Characters that can appear inside one of 'protocols' (minus the slash,
--- which is handled separately via 'hostSeparators').
+-- which is handled separately via 'hostSeparators')
 protocolChar = oneOf (delete '/' $ nub $ join protocols)
 
--- If 'host' is empty but 'query' actually starts with a
--- [.]domain[:port]/ prefix, that domain was mis-captured as query text
--- by the main grammar.
+-- If 'host' is empty but 'path' actually starts with a
+-- [.]domain[:port]/ prefix, that domain was mis-captured as path text
+-- by the main grammar
 repairUnparsedHost :: String -> String -> (String, String)
-repairUnparsedHost "" query
-    | Just (hostPrefix, rest) <- unparsedHostPrefix query = (hostPrefix, rest)
-repairUnparsedHost host query = (host, query)
+repairUnparsedHost "" path
+    | Just (hostPrefix, rest) <- unparsedHostPrefix path = (hostPrefix, rest)
+repairUnparsedHost host path = (host, path)
 
 -- Detects a domain[:port]/ prefix (optionally preceded by a single
--- leading '.' or '/') at the start of a query string, and if found,
--- splits it into the domain/port prefix and the remaining query
--- (still starting with '/').
+-- leading . or /) at the start of a path string, and if found,
+-- splits it into the domain/port prefix and the remaining path
+-- (still starting with /)
 unparsedHostPrefix :: String -> Maybe (String, String)
-unparsedHostPrefix query = case break (== '/') afterLead of
+unparsedHostPrefix path = case break (== '/') afterLead of
     (candidate, rest@('/':_)) | isHostCandidate candidate -> Just (leadPrefix ++ candidate, rest)
     _                                                      -> Nothing
     where
-    (leadPrefix, afterLead) = case query of
+    (leadPrefix, afterLead) = case path of
         ('.':rest') -> (".", rest')
-        _           -> ("", query)
+        _           -> ("", path)
         -- leading '/' means a genuine path rule
     isHostCandidate candidate = case break (== ':') candidate of
         (domainPart, ':':portDigits) ->
             not (null portDigits)
             && all (\c -> isDigit c || c == '*') portDigits
-            && (null domainPart || isPlainDomain domainPart) -- empty domain + port is a valid host (e.g. ":8443")
+            && (null domainPart || isPlainDomain domainPart) -- empty domain + port is a valid host (e.g. :443)
         (domainPart, "") -> isPlainDomain domainPart -- no port: still a host if it's a plain multi-label domain
         _ -> False
     isPlainDomain domainPart =
         all (\c -> isAlphaNum c || c == '-' || c == '.') domainPart
         && length (filter (not . null) (split "." domainPart)) >= 2
 
--- Finds the unescaped '/' that closes a leading /regex/ body, per
+-- Finds the unescaped / that closes a leading /regex/ body, per
 -- AdGuard hosts-blocklist syntax, returning the regex body and whatever
--- follows the closing slash (e.g. "$mods"), if any.
+-- follows the closing slash (e.g. $modifiers), if any
 splitClosingSlash :: String -> Maybe (String, String)
 splitClosingSlash ('/':rest) = go rest ""
     where
@@ -320,17 +326,17 @@ splitClosingSlash ('/':rest) = go rest ""
         go (c:cs)      acc = go cs (c : acc)
 splitClosingSlash _ = Nothing
 
--- Classifies a raw line before any bind/proto/host/query grammar runs.
+-- Classifies a raw line before any bind/proto/host/path grammar runs
 classifyLine :: Pattern -> RuleShape
 classifyLine pattern
-    -- "##"/"##+js(...)" etc. is a cosmetic/scriptlet rule, not a network rule
+    -- ##,  ##+js(...)  etc. is a cosmetic/scriptlet rule, not a network rule
     | "##" `isInfixOf` pattern = Cosmetic
     -- /regex/ delimiters must be found on the RAW line, before any
     -- modifier-stripping: a $ anchor inside the regex body (e.g.
-    -- "/^example\.com$/") is otherwise indistinguishable from a real
+    -- /^example\.com$/) is otherwise indistinguishable from a real
     -- $modifiers separator and gets sliced off along with the closing
     -- slash, corrupting the body. Only what follows the true closing
-    -- slash is modifiers, so splitModifiers is applied there, not first.
+    -- slash are modifiers, so splitModifiers is applied there, not first
     | not ("|" `isPrefixOf` pattern)
     , Just (body, rest) <- splitClosingSlash pattern
     , not (null body)
@@ -339,7 +345,7 @@ classifyLine pattern
     -- $modifiers can be stripped directly here
     | otherwise = Structured (fst (splitModifiers pattern))
 
--- Finds the unescaped '$' starting a $modifiers suffix
+-- Finds the unescaped $ starting a $modifiers suffix
 splitModifiers :: String -> (String, String)
 splitModifiers = go ""
     where
@@ -348,69 +354,67 @@ splitModifiers = go ""
         go acc ('$':cs)    = (reverse acc, '$' : cs)
         go acc (c:cs)      = go (c : acc) cs
 
--- Turns one raw parsed (bindStart, proto, host, query, bindEnd) tuple
+-- Turns one raw parsed (bindStart, proto, host, path, bindEnd) tuple
 -- into zero, one, or two UrlPattern's
 postfilter :: UrlPattern -> [UrlPattern]
-postfilter url@(UrlPattern bs proto rawHost rawQuery be _) = regular
+postfilter url@(UrlPattern bs proto rawHost rawPath be _) = regular
     where
-        -- Workaround: host text can get swallowed into query when nothing forces
-        -- host parsing (see host/urlParts); heuristically recovered here when a
-        -- domain[:port]/ prefix makes the intent unambiguous. The real fix
-        -- belongs in the host parser itself.
-        (host, repairedQuery) = repairUnparsedHost rawHost rawQuery
+        -- host text can get swallowed into path when nothing forces
+        -- host parsing (see host/urlParts); heuristically recovered here
+        -- when a domain[:port]/ prefix makes the intent unambiguous
+        (host, repairedPath) = repairUnparsedHost rawHost rawPath
         -- A lone trailing '^' is just the end-of-host separator
-        query = if repairedQuery == "^" then "" else repairedQuery
+        path = if repairedPath == "^" then "" else repairedPath
 
         -- bare /regex/ lines are classified and built by classifyLine before
-        -- parseUrl ever runs urlParts, so that shape can't reach this function.
+        -- parseUrl ever runs urlParts, so that shape can't reach this function
         regular = let
                      leftBound = bs /= None || proto /= ""
-                     rightBound = be /= None || query /= ""
-                     orphanQuery = leftBound && host == "" && query /= "" && not ("*" `isPrefixOf` query)
+                     rightBound = be /= None || path /= ""
+                     orphanPath = leftBound && host == "" && path /= "" && not ("*" `isPrefixOf` path)
                      duplicateHostStar = host == "*"
                      -- Do not block tld hosts, i.e. reject tld-only here; n.b. independent of leftBound / rightBound to avoid partially-anchored TLD-only hosts
                      hostLabels = filter (\l -> l /= "" && l /= "*") (split "." host)
-                     -- trailing "." (any-tld) or an explicit "*" mean "prefix", not a bare TLD; don't reject those
+                     -- trailing . (any-tld) or an explicit * mean "prefix", not a bare TLD; don't reject those
                      tldOnlyHost = host /= "" && length hostLabels < 2
-                                   && '*' `notElem` host && not ("." `isSuffixOf` host)
-                     -- An unanchored ".domain.tld/path" (no "|"/proto forcing host
+                                   && '*' `notElem` host && not ("." `isSuffixOf` host) && not ("-" `isSuffixOf` host)
+                     -- An unanchored .domain.tld/path (no | / proto forcing host
                      -- parsing) is the Adblock convention for "this domain and any
-                     -- subdomain"; the leading '.' is the signal. When "cases" also
+                     -- subdomain"; the leading . is the signal. When cases also
                      -- produced a sibling that actually captured the domain as host,
-                     -- this "no host at all" reading is a spurious duplicate of it.
-                     leadingDotHost = case break (`elem` hostSeparators) query of
+                     -- this "no host at all" reading is a spurious duplicate of it
+                     leadingDotHost = case break (`elem` hostSeparators) path of
                         (candidate@('.':_), _:_) ->
                             let labels = filter (not . null) (split "." candidate)
                             in length labels >= 2
                                && all (all (\c -> isAlphaNum c || c == '-')) labels
                         _ -> False
                      unanchoredDottedHost = host == "" && leadingDotHost
-                  in if not (orphanQuery || tldOnlyHost || unanchoredDottedHost)
+                  in if not (orphanPath || tldOnlyHost || unanchoredDottedHost)
                      then
                         let
-                            query' = if "*" `isSuffixOf` host && query /= "" then '*' : query else query
-                        in [url {_host = host, _query = query'}]
+                            path' = if "*" `isSuffixOf` host && path /= "" then '*' : path else path
+                        in [url {_host = host, _path = path'}]
                      else []
 
--- Combines a leading bind, the parsed (proto, host, query) cases, and a
+-- Combines a leading bind, the parsed (proto, host, path) cases, and a
 -- trailing bind into the list of raw UrlPattern's for a line
 makeUrls :: SideBind -> [(String, String, String)] -> SideBind -> [UrlPattern]
 makeUrls start mid end = (makeUrl start <$> mid) <*> pure end
 
 -- Builds a single raw (pre-postfilter) UrlPattern from one parsed case
 makeUrl :: SideBind -> (String, String, String) -> SideBind -> UrlPattern
-makeUrl start (proto, host, query) end = UrlPattern start proto (trimTrailingNul host) query end False
+makeUrl start (proto, host, path) end = UrlPattern start proto (trimTrailingNul host) path end False
 
--- The core proto/host/query grammar. Each of proto/host/query is
--- individually optional-ish (see the parsers below); 'host' in
--- particular must be able to match nothing at all, or a bare-query
+-- The core proto/host/path grammar. Each of proto/host/path is
+-- individually optional-ish (see the parsers below); host in
+-- particular must be able to match nothing at all, or a bare-path
 -- pattern (a plain /path rule, or a bare /regex/ rule with no
 -- domain) fails to produce any case here at all, and the whole line is
--- silently dropped rather than emitted or erroring.
+-- silently dropped rather than emitted or erroring
 urlParts :: [StringStateParser (String,String,String)]
-urlParts = square3 proto (manyCases host) (oneCase query)
+urlParts = square3 proto (manyCases host) (oneCase path)
     where
-        append xs x = xs ++ [x]
         proto :: StringStateParser String
         proto = do
                 masksString <- get
@@ -441,13 +445,14 @@ urlParts = square3 proto (manyCases host) (oneCase query)
                                                         else intercalate protocolsSeparator masks'
                                         return $ if nextChar == '*' then chars ++ "*" else chars
         -- N.b. no domain for rules like /regex/, /path
-        host = try (append <$> many hostChar <*> char '*') <|>
-               try ((++) <$> many1 hostChar <*> option "" (try portSuffix) <* lookAhead separator) <|>
-               -- bare ":port" with no domain label, e.g. ":8443/x"
+        -- '*' is an ordinary host-glob char, not a terminator: it can be
+        -- followed by more literal host labels (test*.example.com is one host)
+        host = try ((++) <$> many1 (hostChar <|> char '*') <*> option "" (try portSuffix) <* lookAhead separator) <|>
+               -- bare :port with no domain label, e.g. :443/path
                try (portSuffix <* lookAhead separator) <?> "host"
 
-        separator = (oneOf hostSeparators <|> queryEnd) <?> "separator"
-        query = notFollowedBy (try $ string "//") *> manyTill anyChar (lookAhead (try queryEnd)) <?> "query"
+        separator = (oneOf hostSeparators <|> patternEnd) <?> "separator"
+        path = notFollowedBy (try $ string "//") *> manyTill anyChar (lookAhead (try patternEnd)) <?> "path"
 
         filterProtoMasks :: [String] -> String -> Char -> [String]
         filterProtoMasks masks chars nextChar = mapMaybe filterProtoMask masks
@@ -459,14 +464,11 @@ urlParts = square3 proto (manyCases host) (oneCase query)
                                  in drop (length chars) <$> tailFound
 
 -- Parses one line into its component UrlPattern's
--- Detects a domain[:port]/ prefix (optionally preceded by a single
--- leading '.' or '/') at the start of a query string, and if found,
--- splits it into the domain/port prefix and the remaining query
 parseUrl :: Pattern -> Either ParseError [UrlPattern]
 parseUrl pattern = case classifyLine pattern of
     Cosmetic         -> Right []
     BareRegex body _ -> Right [UrlPattern None "" "" body None True]
-    Structured body  -> parse (nub . join <$> (fmap.fmap) postfilter raw) "url" (decodeUrlEscapes body) -- collapse identical cases
+    Structured body  -> parse (nub . join <$> (fmap.fmap) postfilter raw) "url"  body -- collapse identical cases
         where raw = makeUrls <$> bindStart <*> cases urlParts <*> bindEnd
 
 -- synonym for unEscapeString
