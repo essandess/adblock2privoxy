@@ -27,6 +27,8 @@ terminalActionSwitch False Elem = "-filter{ab2p-elemhide-filter}"
 terminalActionSwitch True Xpopup = "+filter{ab2p-popup-filter}"
 terminalActionSwitch False Xpopup = "-filter{ab2p-popup-filter}"
 terminalActionSwitch True Dnt = "+add-header{DNT: 1}"
+-- N.b. the unblock action must this specific parameter value
+terminalActionSwitch False Dnt = "-add-header{DNT: 1}"
 terminalActionSwitch _ _ = ""
 
 cssProtocol :: Bool -> String

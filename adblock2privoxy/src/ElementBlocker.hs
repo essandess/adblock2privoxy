@@ -75,7 +75,8 @@ elemBlock path info debug = writeElemBlock . elemBlockData
                    -- Build the entire file as one Builder and issue a
                    -- single hPutBuilder, instead of opening in text mode
                    -- (forcing every hPutStrLn through the Handle's UTF-8
-                   -- transcoding layer) with 3+ separate small writes                   BSB.hPutBuilder outFile $ mconcat
+                   -- transcoding layer) with 3+ separate small writes
+                   BSB.hPutBuilder outFile $ mconcat
                        [ BSB.stringUtf8 "/*\n"
                        , foldMap (\l -> BSB.stringUtf8 l <> BSB.char7 '\n') info'
                        , BSB.stringUtf8 "*/\n"

@@ -39,7 +39,6 @@ import Control.Exception (evaluate, handle)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text as T
 import Text.Regex.Pcre2 (SomePcre2Exception, match)
-import Network.URI (unEscapeString)
 
 
 -- https://github.com/AdguardTeam/AdGuardHome/wiki/Hosts-Blocklists
@@ -85,10 +84,12 @@ hasUnsupportedPCRE pattern = hasMultipleLookarounds pattern || unsafePerformIO
 maxPatternLength :: Int
 maxPatternLength = 8000
 
--- efficient non-backtracking wildcard match for glob
-{- http://blogs.perl.org/users/mauke/2017/05/converting-glob-patterns-to-efficient-regexes-in-perl-and-javascript.html -}
+-- possessive wildcard .*+ is more efficient in PCRE2
 globWildcard :: String
-globWildcard = "(*PRUNE).*?"
+globWildcard = ".*+"
+
+caretSeparator :: String
+caretSeparator = "[^\\w%.-]"
 
 -- A host-unrestricted pattern whose path is just the wildcard expansion matches every URL
 isOverbroadPattern :: String -> String -> Bool
@@ -116,7 +117,7 @@ makePattern matchCase (UrlPattern bindStart proto host path bindEnd isRegex)
             | matchCase = "/(?-i)"
             | otherwise = "/"
         -- Privoxy host pattern with FEATURE_PCRE_HOST_PATTERNS
-        host' = case (decodeUrlEscapes host) of
+        host' = case host of
                     "" -> ""
                     -- Drop unnecessary wildcard for Privoxy hosts
                     "*" -> ""
@@ -165,11 +166,16 @@ makePattern matchCase (UrlPattern bindStart proto host path bindEnd isRegex)
                               else case path of
                                 '*' : '/' : other' -> replacePath '/' other' True True
                                 '*' : '^' : other' -> replacePath '^' other' True True
-                                -- a literal leading '/' is its own anchor
-                                -- "./" is just as anchoring as a bare leading '/'
+                                -- a bare trailing ^ means non-word char OR end of address, not a required char
+                                _ | bindEnd == None, "^" `isSuffixOf` path ->
+                                      (case init path of
+                                          ""    -> ""
+                                          (s:o) -> replacePath s o (bindStart == None && host == "" && not (isPathAnchored (init path))) False)
+                                      ++ "(?:" ++ caretSeparator ++ "|$)"
+                                -- a literal leading / is its own anchor
                                 _                  -> replacePath start other (bindStart == None && host == "" && not (isPathAnchored path)) False
                                where
-                                isPathAnchored q = "/" `isPrefixOf` q || "./" `isPrefixOf` q
+                                isPathAnchored q = "/" `isPrefixOf` q
                               where
                                 replacePath c cs openStart collapsed = replaceFirst c openStart collapsed
                                                               ++ concatMap renderChunk (tokenizeBracketClasses cs)
@@ -192,7 +198,7 @@ makePattern matchCase (UrlPattern bindStart proto host path bindEnd isRegex)
                                 pathEndAnchor = if bindEnd == None then "" else "$"
 
                                 replaceWildcard c
-                                    | c == '^'         = "[^\\w%.-]"
+                                    | c == '^'         = caretSeparator
                                     | c == '*'         = globWildcard
                                     | c `elem` special = '\\' : [c]
                                     | otherwise        = [c]
@@ -470,7 +476,3 @@ parseUrl pattern = case classifyLine pattern of
     BareRegex body _ -> Right [UrlPattern None "" "" body None True]
     Structured body  -> parse (nub . join <$> (fmap.fmap) postfilter raw) "url"  body -- collapse identical cases
         where raw = makeUrls <$> bindStart <*> cases urlParts <*> bindEnd
-
--- synonym for unEscapeString
-decodeUrlEscapes :: String -> String
-decodeUrlEscapes = unEscapeString
