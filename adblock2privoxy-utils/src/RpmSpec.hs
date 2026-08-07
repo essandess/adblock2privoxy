@@ -3,7 +3,6 @@ module RpmSpec (
         createRpmSpec
 )
 where
-import Data.String.Utils
 import Control.Monad
 import Distribution.PackageDescription
 import Distribution.Package
@@ -11,7 +10,7 @@ import CabalTemplate
 import Data.Time.Clock
 import Data.Time.Format
 import RootPath
-
+import Utils (startswith)
 
 createRpmSpec:: Bool -> PackageDescription -> IO ()
 createRpmSpec verbose cabalMeta = do

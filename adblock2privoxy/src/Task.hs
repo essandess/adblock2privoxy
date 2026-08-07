@@ -1,20 +1,21 @@
-module Task (
-writeTask,
-readTask
-) where
-import System.IO.Strict as Strict
-import System.IO
+module Task
+  ( writeTask,
+    readTask,
+  )
+where
+
 import InputParser
 import Statistics
+import System.IO
+import System.IO.Strict as Strict
 
 writeTask :: String -> [String] -> [Line] -> IO ()
 writeTask filename info lns =
-    let
-        statistics = collectStat lns
-        errorLine (Line position (Error text))
-            = [concat ["ERROR: ", recordSourceText position, " - ", text]]
-        errorLine _ = []
-    in do
+  let statistics = collectStat lns
+      errorLine (Line position (Error text)) =
+        [concat ["ERROR: ", recordSourceText position, " - ", text]]
+      errorLine _ = []
+   in do
         outFile <- openFile filename WriteMode
         mapM_ (hPutStrLn outFile) info
         mapM_ (hPutStrLn outFile) statistics
@@ -23,5 +24,5 @@ writeTask filename info lns =
 
 readTask :: String -> IO [String]
 readTask path = do
-        result <- lines <$> Strict.readFile path
-        return $ length result `seq` result --read whole file to allow its overwriting
+  result <- lines <$> Strict.readFile path
+  return $ length result `seq` result -- read whole file to allow its overwriting
