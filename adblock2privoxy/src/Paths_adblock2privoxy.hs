@@ -3,24 +3,30 @@
 This file replaces the Paths_*.hs automatically created by cabal.
 
 See:
-* https://github.com/commercialhaskell/stack/issues/848
-* https://github.com/commercialhaskell/stack/issues/4857
-* https://github.com/haskell/cabal/issues/462
-* https://github.com/haskell/cabal/issues/3586
+\* https://github.com/commercialhaskell/stack/issues/848
+\* https://github.com/commercialhaskell/stack/issues/4857
+\* https://github.com/haskell/cabal/issues/462
+\* https://github.com/haskell/cabal/issues/3586
 
 -}
-        
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE NoRebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-missing-import-lists #-}
-module Paths_adblock2privoxy (
-    version,
-    getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir,
-    getDataFileName, getSysconfDir
-  ) where
+
+module Paths_adblock2privoxy
+  ( version,
+    getBinDir,
+    getLibDir,
+    getDynLibDir,
+    getDataDir,
+    getLibexecDir,
+    getDataFileName,
+    getSysconfDir,
+  )
+where
 
 import qualified Control.Exception as Exception
-import Data.Version (Version(..))
+import Data.Version (Version (..))
 import System.Environment (getEnv)
 import Prelude
 
@@ -38,13 +44,13 @@ catchIO :: IO a -> (Exception.IOException -> IO a) -> IO a
 catchIO = Exception.catch
 
 version :: Version
-version = Version [3,0,0] []
-bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
+version = Version [3, 0, 0] []
 
-bindir     = "/opt/local/bin"
-libdir     = "/opt/local/lib/adblock2privoxy"
-dynlibdir  = "/opt/local/lib/adblock2privoxy"
-datadir    = "/opt/local/share/adblock2privoxy"
+bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
+bindir = "/opt/local/bin"
+libdir = "/opt/local/lib/adblock2privoxy"
+dynlibdir = "/opt/local/lib/adblock2privoxy"
+datadir = "/opt/local/share/adblock2privoxy"
 libexecdir = "/opt/local/lib/adblock2privoxy"
 sysconfdir = "/opt/local/etc"
 

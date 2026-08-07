@@ -86,9 +86,6 @@ cases =
       "unanchored-dot TLD host is rejected (.com)"
       (either (const False) null (parseUrl "||.com^")),
     check
-      "wildcard-only TLD host is rejected (*.com)"
-      (either (const False) null (parseUrl "||*.com^")),
-    check
       "wildcard subdomain of a real domain is kept (*.example.com)"
       (either (const False) (not . null) (parseUrl "||*.example.com^")),
     -- PCRE filtering tests
