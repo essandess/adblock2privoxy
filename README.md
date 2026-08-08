@@ -1,9 +1,17 @@
 # adblock2privoxy
 Convert adblock config files to privoxy format.
 
-This is a fork of Zubr's [adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo with minor optimizations for regular expressions, large outputs to the CSS [debug](../../tree/master/css/debug) directory turned off, and upgrades for the latest [ghc](../../../../commercialhaskell/stack) compiler and modules.
+This is a fork of Zubr's
+[adblock2privoxy](https://projects.zubr.me/wiki/adblock2privoxy) repo
+with minor optimizations for regular expressions, large outputs to the
+CSS [debug](../../tree/master/css/debug) directory turned off, and
+upgrades for the latest [ghc](../../../../commercialhaskell/stack)
+compiler and modules.
 
-The webserver configation file [nginx.conf](./nginx.conf) is used for both element blocking and as a blackhole (including within HTTPS-secured pages) for the Proxy Autoconfiguration (PAC) file in the parent repo [easylist-pac-privoxy](../../../easylist-pac-privoxy).
+The webserver configation file [nginx.conf](./nginx.conf) is used for
+both element blocking and as a blackhole (including within
+HTTPS-secured pages) for the Proxy Autoconfiguration (PAC) file in the
+parent repo [easylist-pac-privoxy](../../../easylist-pac-privoxy).
 
 ## Synopsis
 
@@ -11,13 +19,17 @@ The webserver configation file [nginx.conf](./nginx.conf) is used for both eleme
 adblock2privoxy [OPTION...] [URL...]
 ```
 
-The files in the example [privoxy](../../../adblock2privoxy/tree/master/privoxy) and [css](../../../adblock2privoxy/tree/master/css) directories are created with the command:
+The files in the example
+[privoxy](../../../adblock2privoxy/tree/master/privoxy) and
+[css](../../../adblock2privoxy/tree/master/css) directories are
+created with the command:
 
 ```
 adblock2privoxy -p ./privoxy -w ./css -d 127.0.0.1:8119 ./easylist/*.txt
 ```
 
-After installing working binaries (below), an example production run with regular updates looks like:
+After installing working binaries (below), an example production run
+with regular updates looks like:
 
 ```
 adblock2privoxy -p /usr/local/etc/adblock2privoxy/privoxy -w /usr/local/etc/adblock2privoxy/css -d 10.0.1.3:8119 \
@@ -37,7 +49,8 @@ adblock2privoxy -t /usr/local/etc/adblock2privoxy/privoxy/ab2p.task
 
 # macOS Installation
 
-The macOS repo is part of [MacPorts](https://www.macports.org). The installation details below this section are deprecated.
+The macOS repo is part of [MacPorts](https://www.macports.org). The
+installation details below this section are deprecated.
 
 To install:
 ```
@@ -49,18 +62,30 @@ sudo port load adblock2privoxy
 
 ## Quick Build/Install Example
 
-This will build a local `/usr/local/bin/adblock2privoxy` executable from source and templates saved in `/usr/local/etc/adblock2privoxy/adblock2privoxy`.
+This will build a local `/usr/local/bin/adblock2privoxy` executable from source.
 
+Using [Cabal](https://www.haskell.org/ghcup/):
 ```
-curl -sSL https://get.haskellstack.org/ | sh
-sudo mkdir -p /usr/local/etc/adblock2privoxy
-sudo rsync -a ./adblock2privoxy* /usr/local/etc/adblock2privoxy
-PATH=/usr/bin:$PATH sudo -E bash -c 'export STACK_ROOT=/usr/local/etc/.stack ; cd /usr/local/etc/adblock2privoxy/adblock2privoxy && stack setup --allow-different-user && stack install --local-bin-path /usr/local/bin --allow-different-user'
+ghcup install ghc && ghcup install cabal
+cd adblock2privoxy && cabal update
+cabal install --installdir=/usr/local/bin --overwrite-policy=always
+```
+
+Using
+[Stack](https://docs.haskellstack.org/en/stable/install_and_upgrade.html),
+with source and templates saved in
+`/usr/local/etc/adblock2privoxy/adblock2privoxy`:
+```
+cd adblock2privoxy
+stack setup
+stack build
 ```
 
 ## macOS launchd.plist daemons
 
-macOS launchd.plist daemons to start `nginx` and update the `privoxy` database on a schedule. See [macOS-Fortress](../../../macOS-Fortress) for a working example.
+macOS launchd.plist daemons to start `nginx` and update the `privoxy`
+database on a schedule. See [macOS-Fortress](../../../macOS-Fortress)
+for a working example.
 
 ```
 sudo install -m 644 ./com.github.essandess.adblock2privoxy.plist /Library/LaunchDaemons
@@ -71,27 +96,41 @@ sudo launchctl start com.github.essandess.adblock2privoxy
 ```
 
 ## Objectives
-AdBlock Plus browser plugin has great block lists provided by big community, but it is client software and cannot work on a server as a proxy.
+AdBlock Plus browser plugin has great block lists provided by big
+community, but it is client software and cannot work on a server as a
+proxy.
 
-Privoxy proxy has good potential to block ads at server side, but it experiences acute shortage of updated block lists.
+Privoxy proxy has good potential to block ads at server side, but it
+experiences acute shortage of updated block lists.
 
 This software converts adblock lists to privoxy config files format.
 
 Almost all adblock features are supported including
 
 * block/unblock requests (on privoxy)
-  * all syntax features are supported except for regex templates matching host name
+  * all syntax features are supported except for regex templates
+    matching host name
 * hide/unhide page elements (via CSS)
   * all syntax features are supported
 * all block request options except for outdated ones:
-  * Supported: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,document, elemhide, other, popup, third-party, domain=..., match-case, donottrack
+  * Supported: script, image, stylesheet, object, xmlhttprequest,
+    object-subrequest, subdocument,document, elemhide, other, popup,
+    third-party, domain=..., match-case, donottrack
   * Unsupported: collapse, background, xbl, ping and dtd
-  * Tested with privoxy version 3.0.21. [Element hiding](https://adblockplus.org/filters#elemhide) feature requires a webserver to serve CSS files. See Nginx and Apache config examples provided.
+  * Tested with privoxy version 3.0.21. [Element
+    hiding](https://adblockplus.org/filters#elemhide) feature requires
+    a webserver to serve CSS files. See Nginx and Apache config
+    examples provided.
 
 ## Description
-Adblock files specified by `[URL]...` are converted to privoxy config files and auxiliarly elemHide CSS files. Local file names and http(s) addresses are accepted as URLs.
+Adblock files specified by `[URL]...` are converted to privoxy config
+files and auxiliarly elemHide CSS files. Local file names and http(s)
+addresses are accepted as URLs.
 
-If no source URLs are specified, task file is used to determine sources: previously processed sources are processed again if any of them is expired. Nothing is done if all sources in the task file are up to date.
+If no source URLs are specified, task file is used to determine
+sources: previously processed sources are processed again if any of
+them is expired. Nothing is done if all sources in the task file are
+up to date.
 
 ## Options
 ```
@@ -115,13 +154,20 @@ If no source URLs are specified, task file is used to determine sources: previou
 
 If `taskFile` is not specified explicilty, `[privoxyDir]/ab2p.task` is used.
 
-If task file exists and `privoxyDir`, `webDir` or `domainCSS` is not specified, corresponding value is taken from task file.
+If task file exists and `privoxyDir`, `webDir` or `domainCSS` is not
+specified, corresponding value is taken from task file.
 
-If `webDir` is not specified and cannot be taken from task file, `privoxyDir` value is used for `webDir`.
+If `webDir` is not specified and cannot be taken from task file,
+`privoxyDir` value is used for `webDir`.
 
-If `domainCSS` is not specified and cannot be taken from task file, [Element Hide](https://adblockplus.org/filters#elemhide) **functionality become disabled**. No webserver is needed in this case.
+If `domainCSS` is not specified and cannot be taken from task file,
+[Element Hide](https://adblockplus.org/filters#elemhide)
+**functionality become disabled**. No webserver is needed in this
+case.
 
-`domainCSS` can contain just IP address if CSS web server has no associated domain. Use `localhost` or `127.0.0.1` if you run your browser on the same machine with webserver.
+`domainCSS` can contain just IP address if CSS web server has no
+associated domain. Use `localhost` or `127.0.0.1` if you run your
+browser on the same machine with webserver.
 
 ## Usage
 Example of first run:
@@ -148,11 +194,14 @@ The app generates following files
   * ab2p.css
   * [lot of directories for all levels of domain names]
 * taskFile:
-  * special file containing execution details. It can be reused to update privoxy config from same sources with same options. Its name is ab2p.task by default.
+  * special file containing execution details. It can be reused to
+    update privoxy config from same sources with same options. Its
+    name is ab2p.task by default.
 
 ## How to apply results
 
-1. Install privoxy. Optionally setup it as transparent proxy. See privoxy installation manual for details.
+1. Install privoxy. Optionally setup it as transparent proxy. See
+   privoxy installation manual for details.
 
 2. Change privoxy config file located in
 
@@ -170,13 +219,24 @@ filterfile ab2p.system.filter
 filterfile ab2p.filter
 ```
 
-3. In order to make [Element hiding](https://adblockplus.org/filters#elemhide) work you also need a webserver to serve CSS files. You can choose nginx, apache or any other webserver. See [nginx installation manual](https://www.nginx.com/resources/wiki/start/topics/tutorials/install/), [apache on linux installation manual](https://httpd.apache.org/docs/2.4/install.html) or [apache on windows intallation manual](http://www.thesitewizard.com/apache/install-apache-2-windows.shtml) for details.
+3. In order to make [Element
+   hiding](https://adblockplus.org/filters#elemhide) work you also
+   need a webserver to serve CSS files. You can choose nginx, apache
+   or any other webserver. See [nginx installation
+   manual](https://www.nginx.com/resources/wiki/start/topics/tutorials/install/),
+   [apache on linux installation
+   manual](https://httpd.apache.org/docs/2.4/install.html) or [apache
+   on windows intallation
+   manual](http://www.thesitewizard.com/apache/install-apache-2-windows.shtml)
+   for details.
 
 4. Change webserver config. In examples below
 
   * replace `www.example.com` with your domain or IP address (equal to `--domainCSS` adblock2privoxy parameter)
   * replace `/var/www/privoxy` with your CSS files location (equal to `--webDir` adblock2privoxy parameter)
-  * remember, these examples are simplified to use by unexperienced people. If you're familiar with webservers administration, you'll find better ways to apply these configs.
+  * remember, these examples are simplified to use by unexperienced
+    people. If you're familiar with webservers administration, you'll
+    find better ways to apply these configs.
 
 Nginx config: add following lines into http section of `nginx.conf` file
 
@@ -187,42 +247,63 @@ Nginx config: add following lines into http section of `nginx.conf` file
 
 ```
 server {
-      listen www.example.com:443;
-      #ab2p css domain name (optional, should be equal to --domainCSS parameter)
-      server_name www.example.com;
+    listen www.example.com:8119 ssl;
+    #ab2p css domain name (optional, should be equal to --domainCSS parameter)
+    server_name www.example.com;
 
-      ssl on;
-      ssl_certificate      certs/adblock2privoxy-nginx.chain.pem;
-      ssl_certificate_key  certs/adblock2privoxy-nginx.key.pem.decrypted;
-      # use modern crypto
-      # https://ssl-config.mozilla.org
-      ssl_protocols TLSv1.3;
-      ssl_prefer_server_ciphers on;
-      ssl_dhparam certs/dhparam.pem;
-      ssl_ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:EECDH+AESGCM:EDH+AESGCM;
-      ssl_ecdh_curve secp384r1;
-      ssl_session_timeout  180m;
-      ssl_session_cache    shared:SSL:20m;
-      ssl_session_tickets  off;
-      add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
+    ssl on;
+    ssl_certificate      certs/adblock2privoxy-nginx.chain.pem;
+    ssl_certificate_key  certs/adblock2privoxy-nginx.key.pem.decrypted;
+    # use modern crypto
+    # https://ssl-config.mozilla.org
+    ssl_protocols TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_dhparam certs/dhparam.pem;
+    ssl_ciphers TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:EECDH+AESGCM:EDH+AESGCM;
+    ssl_ecdh_curve secp384r1;
+    ssl_session_timeout  180m;
+    ssl_session_cache    shared:SSL:20m;
+    ssl_session_tickets  off;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
 
-      # comply with Content Security policy
-      add_header Content-Type "text/css";
-      add_header X-Content-Type-Options nosniff;
+    # comply with Content Security policy
+    add_header Content-Type "text/css";
+    add_header X-Content-Type-Options nosniff;
 
-      #root = --webDir parameter value
-      root /var/www/privoxy;
+    #root = --webDir parameter value
+    root /var/www/privoxy;
 
-      location ~ ^/[^/.]+\..+/ab2p.css$ {
-          # first reverse domain names order
-          rewrite ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css last;
-      }
+    # If useHTTP is set:
+    # Ensure that http://localhost:8119/ is a legitimate (200 return code)
+    # default page; use as iOS proxy.pac blackhole
+    # Test with curl -I --proxy http://127.0.0.1:8119 http://www.foo.com/bar?q=snafoo
 
-      location ~ (^.*/+)[^/]+/+ab2p.css {
-          # then try to get CSS for current domain
-          # if it is unavailable - get CSS for parent domain
-          try_files $uri $1ab2p.css;
-      }
+    location / {
+      return 301 http://$server_name:$server_port/@blackhole?;
+      # rewrite ^ /default.html break;
+    }
+
+    location ~ ^/@blackhole {
+      default_type text/html;
+      return 200 "<!DOCTYPE html>\n<html>\n<head>\n<meta charset='utf-8'>\n</head>\n<body>\n<p><a href=\"https://github.com/essandess/adblock2privoxy\">adblock2privoxy</a> blackhole 🕳</p>\n</body>\n</html>\n";
+      # rewrite ^ /default.html break;
+    }
+
+    location ~ ^/+(ab2p(?:\.common)?\.css) {
+      # ab2p.css in top-level directory
+      try_files $uri $1;
+    }
+
+    location ~ ^/[^/.]+\..+/ab2p\.css$ {
+      # first reverse domain names order
+      rewrite ^/([^/]*?)\.([^/.]+)(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?(?:\.([^/.]+))?/ab2p.css$ /$9/$8/$7/$6/$5/$4/$3/$2/$1/ab2p.css last;
+    }
+
+    location ~ (^.*/+)[^/]+/+ab2p\.css {
+      # then try to get CSS for current domain
+      # if it is unavailable - get CSS for parent domain
+      try_files $uri $1ab2p.css;
+    }
 }
 ```
 
@@ -334,7 +415,9 @@ Apache config: put following lines into
     * [EasyList](https://easylist.adblockplus.org/en/)
     * [Russian AD list](https://code.google.com/p/ruadlist/)
     * and many others from [official adblock repository](https://easylist.adblockplus.org/en/)
-  * Or just download processed lists from [downloads page](https://projects.zubr.me/wiki/adblock2privoxyDownloads) and unpack privoxy to and web directories content into
+  * Or just download processed lists from [downloads
+    page](https://projects.zubr.me/wiki/adblock2privoxyDownloads) and
+    unpack privoxy to and web directories content into
     * `/var/www/privoxy` and `/var/www/privoxy` for linux
     * `C:\Program Files\Privoxy` and [your webserver directory] for windows
 
@@ -348,12 +431,15 @@ Apache config: put following lines into
 ## Adblock2Privoxy installation
 
 ### From binary package
-There are packages for various systems available at [downloads page](http://projects.zubr.me/wiki/adblock2privoxyDownloads)
+There are packages for various systems available at [downloads
+page](http://projects.zubr.me/wiki/adblock2privoxyDownloads)
   * For linux: you can try RPM or DEB package (depending on your package manager).
-  * For windows: Just unzip the file provided. You'll find adblock2privoxy executable is in bin folder.
+  * For windows: Just unzip the file provided. You'll find
+    adblock2privoxy executable is in bin folder.
 
 ### From sources
-You can build and run adblock2privoxy from sources if there is no binary package for your system.
+You can build and run adblock2privoxy from sources if there is no
+binary package for your system.
 
 1. Ensure you have Haskell Stack environment
   * Install [Stack](http://docs.haskellstack.org/en/stable/install_and_upgrade.html) for your platform
@@ -366,34 +452,17 @@ stack setup
 stack build
 ```
 
-&lbrack;Note: issuing the command `stack unpack adblock2privoxy` downloads the [original adblock2privoxy](https://hackage.haskell.org/package/adblock2privoxy) from Hackage to the directory `./adblock2privoxy-*`, which does not contain the modifications of this fork.&rbrack;
-
-#### macOS build specifics
-    * The `.stack` directory cannot be in a path that contains spaces
-    * Use macOS's native gcc compiler in `/usr/bin/gcc`, not Macports (see issues).
-
-```
-$ which gcc
-/usr/bin/gcc
-
-$ gcc --version
-Configured with: --prefix=/Applications/Xcode.app/Contents/Developer/usr --with-gxx-include-dir=/usr/include/c++/4.2.1
-Apple LLVM version 8.1.0 (clang-802.0.42)
-
-export PATH=/usr/bin:$PATH  # ensure that /usr/bin/gcc is found first
-export STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack
-
-stack setup
-stack build
-```
-
-Install the binary (e.g. to `/usr/local/bin`):
-
-```
-sudo -E bash -c 'export PATH=/usr/bin:$PATH ; export STACK_ROOT=/path/to/local/stack/dir/without/spaces/.stack ; stack setup --allow-different-user ; stack install --local-bin-path /usr/local/bin --allow-different-user'
-```
+&lbrack;Note: issuing the command `stack unpack adblock2privoxy`
+downloads the [original
+adblock2privoxy](https://hackage.haskell.org/package/adblock2privoxy)
+from Hackage to the directory `./adblock2privoxy-*`, which does not
+contain the modifications of this fork.&rbrack;
 
 3. Run the app:
+
+```
+cabal run adblock2privoxy -- [YOUR ARGS]
+```
 
 ```
 stack exec adblock2privoxy -- [YOUR ARGS]

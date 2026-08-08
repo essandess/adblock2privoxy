@@ -3,12 +3,12 @@
 This file replaces the Paths_*.hs automatically created by cabal.
 
 See:
-\* https://github.com/commercialhaskell/stack/issues/848
-\* https://github.com/commercialhaskell/stack/issues/4857
-\* https://github.com/haskell/cabal/issues/462
-\* https://github.com/haskell/cabal/issues/3586
-
+* https://github.com/commercialhaskell/stack/issues/848
+* https://github.com/commercialhaskell/stack/issues/4857
+* https://github.com/haskell/cabal/issues/462
+* https://github.com/haskell/cabal/issues/3586
 -}
+
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE NoRebindableSyntax #-}
 {-# OPTIONS_GHC -fno-warn-missing-import-lists #-}
@@ -44,7 +44,7 @@ catchIO :: IO a -> (Exception.IOException -> IO a) -> IO a
 catchIO = Exception.catch
 
 version :: Version
-version = Version [3, 0, 0] []
+version = Version [3, 0, 1] []
 
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
 bindir = "/opt/local/bin"

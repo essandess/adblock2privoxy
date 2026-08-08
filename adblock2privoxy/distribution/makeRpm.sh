@@ -28,6 +28,7 @@ echo "setup repository"
 curl -sSL https://s3.amazonaws.com/download.fpcomplete.com/$ID/$VERSION_ID/fpco.repo | sudo tee /etc/yum.repos.d/fpco.repo
 
 echo "install build tools and dependencies"
+sudo dnf -y install pcre2-devel || sudo yum -y install pcre2-devel
 
 if [ "$VERSION_ID" -gt "21" ]
 	then
