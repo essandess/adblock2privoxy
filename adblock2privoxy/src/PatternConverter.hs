@@ -89,9 +89,8 @@ hasUnsupportedPCRE pattern =
 maxPatternLength :: Int
 maxPatternLength = 8000
 
--- possessive wildcard .*+ is more efficient in PCRE2
 globWildcard :: String
-globWildcard = ".*+"
+globWildcard = "(*PRUNE).*?"
 
 caretSeparator :: String
 caretSeparator = "[^\\w%.-]"
@@ -184,6 +183,12 @@ makePattern matchCase (UrlPattern bindStart proto host path bindEnd isRegex)
                     ++ "(?:"
                     ++ caretSeparator
                     ++ "|$)"
+            -- wildcard-TLD host may be followed by an extra subpath before a literal path
+            _
+              | not (null host),
+                last host == '*',
+                not ("*" `isPrefixOf` path) ->
+                  "(?:" ++ globWildcard ++ "/)?" ++ replacePath start other False False
             -- a literal leading / is its own anchor
             _ -> replacePath start other (bindStart == None && host == "" && not (isPathAnchored path)) False
         where
@@ -243,7 +248,12 @@ makePattern matchCase (UrlPattern bindStart proto host path bindEnd isRegex)
             isClassChar ch = isAlphaNum ch || ch `elem` "-^"
 
         renderChunk :: Either String String -> String
-        renderChunk (Left plain) = concatMap replaceWildcard plain
+        renderChunk (Left plain) = concatMap replaceWildcard (mergeDotStar plain)
+          where
+            -- fold literal '.' immediately before '*' into the wildcard itself
+            mergeDotStar ('.' : '*' : rest) = '*' : mergeDotStar rest
+            mergeDotStar (c : rest) = c : mergeDotStar rest
+            mergeDotStar [] = []
         renderChunk (Right cls) = cls
 
 hostSeparators :: String

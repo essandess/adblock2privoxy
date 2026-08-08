@@ -13,12 +13,11 @@ echo "install tools"
 echo "deb http://download.fpcomplete.com/debian $codename main" | sudo tee /etc/apt/sources.list.d/fpco.list
 
 sudo apt-get update
-sudo apt-get -y --force-yes install stack
+sudo apt-get -y --force-yes install stack libpcre2-dev
 
 echo "install ghc and cabal"
 cd ~
 stack setup
-stack install cabal-install
 
 echo "change dir to $scriptDir"
 cd $scriptDir
@@ -26,11 +25,8 @@ echo "working dir is $PWD"
 
 echo "build adblock2privoxy"
 cd ..
-stack build --only-dependencies
-
-stack exec --no-ghc-package-path runhaskell -- Setup.hs configure --user --prefix=/usr --package-db=clear --package-db=global --package-db="$(stack path --snapshot-pkg-db)" --package-db="$(stack path --local-pkg-db)"
-stack exec --no-ghc-package-path runhaskell -- Setup.hs build
-stack exec --no-ghc-package-path runhaskell -- Setup.hs copy --destdir=distribution/debbuild
+stack build
+stack install --local-bin-path=distribution/debbuild/usr/bin
 cp -r man distribution/debbuild/usr/share/
 echo "set architecture"
 sed -i -e "s/#ARCH#/$(dpkg --print-architecture)/" distribution/debbuild/DEBIAN/control

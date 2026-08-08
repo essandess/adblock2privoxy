@@ -11,28 +11,15 @@ SET "stack=%appdata%\local\bin\stack"
 ECHO Install GHC and Cabal
 CD %USERPROFILE%
 "%stack%" setup
-"%stack%" build cabal-install
 
 ECHO Build package dependencies with stack first
 CD "%startpath%"
 
 "%stack%" build --only-dependencies
 
-FOR /F "tokens=* USEBACKQ" %%F IN (`"%stack%" path --snapshot-pkg-db`) DO (
-SET snapshotdb=%%F
-)
-
-FOR /F "tokens=* USEBACKQ" %%F IN (`"%stack%" path --local-pkg-db`) DO (
-SET localdb=%%F
-)
-
-ECHO snapshots package DB = %snapshotdb%
-ECHO local package DB = %localdb%
-
 MKDIR "%prefix%"
-"%stack%" exec --no-ghc-package-path runhaskell -- Setup.hs configure --user --prefix="%prefix%" --package-db=clear --package-db=global --package-db="%snapshotdb%" --package-db="%localdb%" 
-"%stack%" exec --no-ghc-package-path runhaskell -- Setup.hs build
-"%stack%" exec --no-ghc-package-path runhaskell -- Setup.hs install
+"%stack%" build
+"%stack%" install --local-bin-path="%prefix%\bin"
 
 cd "%prefix%\doc\*windows*\adblock2privoxy*"
 copy "%startpath%\README.rst" .

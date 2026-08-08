@@ -1,16 +1,18 @@
 Name:    adblock2privoxy
-Version: 2.0.0
+Version: 3.0.1
 Release: 1%{?dist}
 Summary: Convert adblock config files to privoxy format
 
 License: GPL-3
 URL:     https://github.com/essandess/adblock2privoxy
-Source0: http://hackage.haskell.org/package/adblock2privoxy-2.0.0/adblock2privoxy-2.0.0.tar.gz
+Source0: http://hackage.haskell.org/package/adblock2privoxy-3.0.1/adblock2privoxy-3.0.1.tar.gz
 Vendor:  Alexey Zubritskiy <adblock2privoxy@zubr.me>, Steven Thomas Smith <steve.t.smith@gmail.com>
 Group:   Web
 
 BuildRequires:  stack
 BuildRequires:  zlib-devel
+BuildRequires:  pcre2-devel
+Requires:       pcre2
 
 %description
 AdBlock Plus browser plugin has great block list files provided by big community,
@@ -43,17 +45,14 @@ Unsupported: collapse, background, xbl, ping and dtd
 %prep
 %setup -q -T -D -n root
 stack setup
-stack install cabal-install
 
 
 %build
-stack build --only-dependencies
-stack exec --no-ghc-package-path runhaskell -- Setup.hs configure --user --package-db=clear --package-db=global --package-db="$(stack path --snapshot-pkg-db)" --package-db="$(stack path --local-pkg-db)" --prefix=%{_prefix} --libdir=%{_libdir} --docdir=%{?_pkgdocdir}%{!?_pkgdocdir:%{_docdir}/%{name}-%{version}} --libsubdir='$compiler/$pkgid' --datasubdir='$pkgid'
-stack exec --no-ghc-package-path runhaskell -- Setup.hs build
+stack build
 
 
 %install
-stack exec --no-ghc-package-path runhaskell -- Setup.hs copy --destdir=%{buildroot} -v
+stack install --local-bin-path=%{buildroot}%{_bindir}
 cp -r man %{buildroot}%{_mandir}
 
 

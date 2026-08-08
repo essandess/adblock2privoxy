@@ -1,5 +1,5 @@
 name:           adblock2privoxy-utils
-version:        3.0.0
+version:        3.0.1
 cabal-version:  >= 1.10
 build-type:     Simple
 tested-with:    GHC==9.14.1

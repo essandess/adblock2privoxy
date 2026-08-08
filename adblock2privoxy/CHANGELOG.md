@@ -1,14 +1,21 @@
+3.0.1
+    * Update Debian and RPM builds
+    * Fix grammar examples
+    * Fix incorrect possessive wildcard
+
 3.0.0
-        * Speed and memory improvements in tree processing, file output 
-        * Parsing corrections for Adblock Plus, uBlock origin, AdGuard lists
-        * Privoxy PCRE syntax checks
-        * Use Privoxy FEATURE_PCRE_HOST_PATTERNS
-        * Filter out rules that affect TLDs
-        * Replace ageing dependencies with modern equivalents
-        * Add test suite
+    * Speed and memory improvements in tree processing, file output 
+    * Parsing corrections for Adblock Plus, uBlock origin, AdGuard lists
+    * Privoxy PCRE syntax checks
+    * Use Privoxy FEATURE_PCRE_HOST_PATTERNS
+    * Filter out rules that affect TLDs
+    * Replace ageing dependencies with modern equivalents
+    * Add test suite
 	* Multiple bug fixes
+
 2.3.1
 	* Fix Network.hs compilation
+
 2.3.0
 	* hlint mods
 	* Add debug code with new DebugLevel option
@@ -22,10 +29,10 @@
 2.1.0
 	* Use TLS for CSS server to avoid mixed content errors
 	* Add --useHTTP option
-        * Update to ghc 8.10.7, lts-18.18 resolver
+    * Update to ghc 8.10.7, lts-18.18 resolver
 
 2.0.2
-        * Update to ghc 8.10.4, lts-17.11 resolver
+    * Update to ghc 8.10.4, lts-17.11 resolver
 
 2.0.1
 	* Update to ghc 8.6.5, lts-13.25 resolver
@@ -38,13 +45,13 @@
 	* Migrate to GitHub fork
 
 1.4.2
-        * Fixed "commitBuffer: invalid argument (invalid character)" problem
-        * Fixed system.action file generation in case when no webserver is used
-        * Improved documentation
+    * Fixed "commitBuffer: invalid argument (invalid character)" problem
+    * Fixed system.action file generation in case when no webserver is used
+    * Improved documentation
 
 1.4.0
-        * Stack build envirionment and GHC 7.10
-        * Problem with network connections should be fixed because of new HTTPS library
+    * Stack build envirionment and GHC 7.10
+    * Problem with network connections should be fixed because of new HTTPS library
 
 1.3.0
 	* Build and packaging process refactoring
@@ -55,18 +62,18 @@
 	* Task files contains output paths, so it's possible to run ab2p with single parameter: task file name
 	* Bugfixes for tickets #7, #8, #9
 1.2.4
-        * Documentation and bugfixes
+    * Documentation and bugfixes
 
 1.1.0
-        * Tasks support to update privoxy config from same sources
-        * HTTP(s) supported to get adblock files
-        * Redirect comment support
-        * Sources expiration check 
+    * Tasks support to update privoxy config from same sources
+    * HTTP(s) supported to get adblock files
+    * Redirect comment support
+    * Sources expiration check 
 
 1.0.0
-        * First public version
-        * Supports filenames in command-line
-        * Page elements blocking
-        * URLs blocking
-        * Popups blocking
-        * Adblock options: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,document, elemhide, other, popup, third-party, domain=..., match-case, donottrack    
+    * First public version
+    * Supports filenames in command-line
+    * Page elements blocking
+    * URLs blocking
+    * Popups blocking
+    * Adblock options: script, image, stylesheet, object, xmlhttprequest, object-subrequest, subdocument,document, elemhide, other, popup, third-party, domain=..., match-case, donottrack    
